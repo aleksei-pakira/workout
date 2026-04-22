@@ -1,32 +1,50 @@
 /* src/pages/WorkoutCreatePage.module.css */
 @value utils: '../styles/utils.module.css';
 
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #f7fafc;
+  --text: #1a1a1a;
+  --muted: #4a4a4a;
+  --muted-2: #6b7280;
+  --border: #e2e8f0;
+
+  --primary: #ce1126;
+  --primary-hover: #b50f22;
+
+  --hover-text: #b87a6b;
+  --hover-bg: #f4ece9;
+
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+
+  --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+  width: 100%;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .content {
   margin-top: var(--header-height, 70px);
-  padding: 30px 20px;
-  animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  max-width: 1440px;
+  width: 100%;
+  padding: 30px;
+  box-sizing: border-box;
 }
 
 /* Заголовок страницы */
 .header {
-  max-width: 800px;
-  margin: 0 auto 30px;
+  max-width: 1000px;
+  margin: 0 auto 16px;
   display: flex;
   align-items: center;
   gap: 15px;
@@ -34,15 +52,16 @@
 
 .headerIcon {
   font-size: 32px;
-  background-color: var(--primary-color, #4CAF50);
-  color: white;
+  background: rgba(206, 17, 38, 0.10);
+  color: var(--primary);
   width: 60px;
   height: 60px;
-  border-radius: 50%;
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .headerTitle {
@@ -51,34 +70,20 @@
 
 .headerTitle h1 {
   margin: 0 0 5px;
-  color: var(--text-primary, #333);
-  font-size: 28px;
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 900;
 }
 
 .headerTitle p {
   margin: 0;
-  color: var(--text-secondary, #666);
-  font-size: 16px;
-}
-
-/* Контейнер для формы */
-.formContainer {
-  max-width: 800px;
-  margin: 0 auto;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.formContainer:hover {
-  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  color: var(--muted-2);
+  font-size: 14px;
 }
 
 /* Подсказки */
 .tipsSection {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 30px auto 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -150,7 +155,7 @@
   }
 
   .headerTitle h1 {
-    font-size: 24px;
+    font-size: 20px;
   }
 
   .headerTitle p {

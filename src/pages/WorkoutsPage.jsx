@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import Header from '../components/layout/Header';
+import WorkoutDetailContent from '../components/workouts/WorkoutDetailContent';
 import styles from './WorkoutsPage.module.css';
 
 function toYear(dateStr) {
@@ -48,6 +49,42 @@ const [selectedMonthKey, setSelectedMonthKey] = useState(null); // подсве�
 const [openMonthKey, setOpenMonthKey] = useState(null);         // реально раскрытый месяц (тренировки)
 const [openArchive, setOpenArchive] = useState(false);
 const [openArchiveYear, setOpenArchiveYear] = useState(null);
+const [openWorkoutId, setOpenWorkoutId] = useState(null);
+
+  const workoutCardRefs = useRef({});
+  const monthGridRef = useRef(null);
+  const [monthGridCols, setMonthGridCols] = useState(3);
+
+  const readCols = useCallback(() => {
+    const el = monthGridRef.current;
+    if (!el) return;
+    const raw = getComputedStyle(el).getPropertyValue('--cols').trim();
+    const parsed = parseInt(raw, 10);
+    if (Number.isFinite(parsed) && parsed > 0) setMonthGridCols(parsed);
+  }, []);
+
+  useEffect(() => {
+    readCols();
+    window.addEventListener('resize', readCols);
+    return () => window.removeEventListener('resize', readCols);
+  }, [readCols]);
+
+  useEffect(() => {
+    if (!openMonthKey) return;
+    const raf = requestAnimationFrame(() => readCols());
+    return () => cancelAnimationFrame(raf);
+  }, [openMonthKey, readCols]);
+
+  useEffect(() => {
+    if (!openWorkoutId) return;
+    const el = workoutCardRefs.current?.[openWorkoutId];
+    if (!el) return;
+    const t = setTimeout(() => {
+      el.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      el.focus?.();
+    }, 0);
+    return () => clearTimeout(t);
+  }, [openWorkoutId]);
 
   useEffect(() => {
     const load = async () => {
@@ -284,7 +321,7 @@ const [openArchiveYear, setOpenArchiveYear] = useState(null);
                   onClick={() => navigate('/workouts/create')}
                   className={styles.quickActionBtnPrimaryCompact}
                 >
-                  ➕ Новая
+                  Создать тренировку
                 </button>
               </div>
             </div>
@@ -320,6 +357,7 @@ const [openArchiveYear, setOpenArchiveYear] = useState(null);
                       key={m.key}
                       className={styles.workoutFolder}
                       onClick={() => {
+                        setOpenWorkoutId(null);
                         setOpenMonthKey((prev) => (prev === m.key ? null : m.key));
                       }}
                       role="button"
@@ -345,41 +383,70 @@ const [openArchiveYear, setOpenArchiveYear] = useState(null);
                       <h2 className={styles.sectionTitle}>📁 Тренировки</h2>
                     </div>
 
-                    <div className={styles.workoutsGrid}>
-                      {monthsCurrentYear
-                        .find((x) => x.key === openMonthKey)
-                        ?.workouts.map((workout) => (
-                          <div
-                            key={workout.id}
-                            className={styles.workoutFolder}
-                            onClick={() => navigate(`/workouts/${workout.id}`)}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            <div className={styles.folderIcon}>📁</div>
+                    {(() => {
+                      const monthWorkouts =
+                        monthsCurrentYear.find((x) => x.key === openMonthKey)?.workouts || [];
 
-                            <h3 className={styles.folderTitle}>
-                              {workout.title || 'Тренировка'}
-                            </h3>
+                      const openIdx = openWorkoutId
+                        ? monthWorkouts.findIndex((w) => w.id === openWorkoutId)
+                        : -1;
 
-                            <div className={styles.folderDate}>
-                              📅 {new Date(workout.date).toLocaleDateString('ru-RU')}
+                      const cols = monthGridCols || 3;
+                      const rowEndIndex =
+                        openIdx >= 0
+                          ? Math.min(
+                              monthWorkouts.length - 1,
+                              (Math.floor(openIdx / cols) + 1) * cols - 1
+                            )
+                          : -1;
+
+                      return (
+                        <div className={styles.workoutsGrid} ref={monthGridRef}>
+                          {monthWorkouts.map((workout, idx) => (
+                          <Fragment key={workout.id}>
+                            <div
+                              ref={(el) => {
+                                if (el) workoutCardRefs.current[workout.id] = el;
+                              }}
+                              className={styles.workoutFolder}
+                              onClick={() =>
+                                setOpenWorkoutId((prev) => (prev === workout.id ? null : workout.id))
+                              }
+                              role="button"
+                              tabIndex={0}
+                            >
+                              <div className={styles.folderIcon}>📁</div>
+
+                              <h3 className={styles.folderTitle}>
+                                {workout.title || 'Тренировка'}
+                              </h3>
+
+                              <div className={styles.folderDate}>
+                                📅 {new Date(workout.date).toLocaleDateString('ru-RU')}
+                              </div>
+
+                              <div className={styles.folderStats}>
+                                <span className={styles.folderStat}>
+                                  {workout.exercises_count || 0}
+                                </span>
+
+                                <span className={styles.folderStat}>
+                                  <span className={styles.folderStatIcon}>⚡</span>
+                                  {workout.total_sets || 0}
+                                </span>
+                              </div>
                             </div>
 
-                            <div className={styles.folderStats}>
-                              <span className={styles.folderStat}>
-                                <span className={styles.folderStatIcon}>🏋️</span>
-                                {workout.exercises_count || 0}
-                              </span>
-
-                              <span className={styles.folderStat}>
-                                <span className={styles.folderStatIcon}>⚡</span>
-                                {workout.total_sets || 0}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
+                            {openWorkoutId && idx === rowEndIndex && (
+                              <div className={styles.inlineWorkoutDetailInGrid}>
+                                <WorkoutDetailContent workoutId={openWorkoutId} />
+                              </div>
+                            )}
+                          </Fragment>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -436,6 +503,7 @@ const [openArchiveYear, setOpenArchiveYear] = useState(null);
                                     onClick={() => {
                                       setSelectedMonthKey(m.key);
                                       setOpenMonthKey(m.key);
+                                      setOpenWorkoutId(null);
                                     }}
                                     role="button"
                                     tabIndex={0}

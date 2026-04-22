@@ -1,16 +1,77 @@
-# React + Vite
+# Workout Tracker
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Трекер тренировок на **React + Vite** с бэкендом **PocketBase**.
 
-Currently, two official plugins are available:
+## Стек
+- **Frontend**: React, Vite, CSS Modules
+- **Routing**: `react-router-dom`
+- **Backend**: PocketBase
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Требования
+- Node.js (рекомендуется LTS)
+- PocketBase (запускается отдельно)
 
-## React Compiler
+## Быстрый старт (Frontend)
+Установка:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+```
 
-## Expanding the ESLint configuration
+Запуск dev-сервера:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm run dev
+```
+
+Сборка:
+
+```bash
+npm run build
+```
+
+Preview сборки:
+
+```bash
+npm run preview
+```
+
+## PocketBase (Backend)
+Приложение ожидает, что PocketBase доступен по адресу `http://127.0.0.1:8090`.
+
+URL PocketBase сейчас задан хардкодом в:
+- `src/lib/pocketbase.js`
+
+### Запуск PocketBase (пример)
+Скачай PocketBase и запусти:
+
+```bash
+./pocketbase serve
+```
+
+По умолчанию:
+- API: `http://127.0.0.1:8090`
+- Admin UI: `http://127.0.0.1:8090/_/`
+
+## Коллекции PocketBase (минимально необходимые)
+Упражнения:
+- **`exercises`**: публичная библиотека (используется `is_public = true`)
+- **`user_exercises`**: упражнения, которые пользователь создаёт сам (приватные)
+- **`user_exercise_library`**: “добавленные в мои” (связка `user` ↔ `exercise`)
+
+Тренировки:
+- **`workouts`**
+- **`workout_exercises`**
+- **`sets`**
+
+## Деплой (важно)
+- **Frontend (Vite)** можно деплоить как статический сайт (GitHub Pages / Vercel / Netlify).
+- **PocketBase** нужно деплоить отдельно (сервер/VPS/Render/Fly.io и т.п.).
+
+Для продакшна рекомендуется вынести URL PocketBase в переменные окружения (например `VITE_PB_URL`), чтобы удобно разделять dev/prod конфигурации.
+
+## Что нельзя пушить в GitHub
+- `node_modules/`
+- `dist/`
+- `.env`, `.env.*` (секреты)
+- `pb_data/` (данные PocketBase)

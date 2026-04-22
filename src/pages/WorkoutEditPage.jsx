@@ -1,12 +1,8 @@
-// src/pages/WorkoutEditPage.jsx
-import { useParams } from 'react-router-dom';
 import WorkoutForm from '../components/workouts/WorkoutForm';
 import Header from '../components/layout/Header';
 import styles from './WorkoutCreatePage.module.css';
 
 function WorkoutEditPage() {
-  const { id } = useParams();
-
   return (
     <div className={styles.page}>
       <Header />

@@ -39,7 +39,6 @@ function LoginPage() {
     <div className={styles.page}>
       <div className={styles.card}>
         <h1 className={styles.title}>
-          <span className={styles.titleIcon}>🏋️</span>
           Вход в дневник
         </h1>
 

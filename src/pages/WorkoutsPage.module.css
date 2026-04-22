@@ -215,15 +215,18 @@
 
 .quickActionBtnPrimaryCompact {
   composes: quickActionBtnCompact;
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary);
+  font-weight: 900;
 }
 
 .quickActionBtnPrimaryCompact:hover {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
-  color: #ffffff;
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
+  color: var(--primary);
 }
 
 /* Цитата */
@@ -297,6 +300,7 @@
 
 /* Сетка папок: desktop 3 в ряд, mobile 2 в ряд */
 .workoutsGrid {
+  --cols: 3;
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, 240px);
@@ -434,6 +438,35 @@
   margin-top: 14px;
 }
 
+.inlineWorkoutDetail {
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+}
+
+.inlineWorkoutDetailInGrid {
+  grid-column: 1 / -1;
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+}
+
+@media (max-width: 768px) {
+  .inlineWorkoutDetail {
+    padding: 12px;
+  }
+
+  .inlineWorkoutDetailInGrid {
+    padding: 12px;
+  }
+}
+
 .archiveSection {
   margin-top: 18px;
 }
@@ -496,6 +529,7 @@
   }
 
   .workoutsGrid {
+    --cols: 2;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: stretch;
     gap: 12px;

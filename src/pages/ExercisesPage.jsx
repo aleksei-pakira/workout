@@ -592,54 +592,48 @@ function ExercisesPage() {
 
             {/* ===== TAB: CREATE ===== */}
             {activeTab === 'create' && (
-              <div className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>Создать упражнение</h2>
+              <form onSubmit={createMyExercise} className={styles.createFormPlain}>
+                {createError && <div className={styles.formError}>{createError}</div>}
+
+                <div className={styles.formGridSingle}>
+                  <input
+                    className={styles.formInput}
+                    value={newExercise.exercise_name}
+                    onChange={(e) =>
+                      setNewExercise((p) => ({ ...p, exercise_name: e.target.value }))
+                    }
+                    placeholder="Название *"
+                  />
+                  <input
+                    className={styles.formInput}
+                    value={newExercise.muscle_group}
+                    onChange={(e) =>
+                      setNewExercise((p) => ({ ...p, muscle_group: e.target.value }))
+                    }
+                    placeholder="Группа мышц"
+                  />
+                  <input
+                    className={styles.formInput}
+                    value={newExercise.video_url}
+                    onChange={(e) => setNewExercise((p) => ({ ...p, video_url: e.target.value }))}
+                    placeholder="Видео URL"
+                  />
+                  <input
+                    className={styles.formInput}
+                    value={newExercise.exercise_description}
+                    onChange={(e) =>
+                      setNewExercise((p) => ({ ...p, exercise_description: e.target.value }))
+                    }
+                    placeholder="Описание"
+                  />
                 </div>
 
-                <form onSubmit={createMyExercise} className={styles.createForm}>
-                  {createError && <div className={styles.formError}>{createError}</div>}
-
-                  <div className={styles.formGrid}>
-                    <input
-                      className={styles.formInput}
-                      value={newExercise.exercise_name}
-                      onChange={(e) =>
-                        setNewExercise((p) => ({ ...p, exercise_name: e.target.value }))
-                      }
-                      placeholder="Название *"
-                    />
-                    <input
-                      className={styles.formInput}
-                      value={newExercise.muscle_group}
-                      onChange={(e) =>
-                        setNewExercise((p) => ({ ...p, muscle_group: e.target.value }))
-                      }
-                      placeholder="Группа мышц"
-                    />
-                    <input
-                      className={styles.formInput}
-                      value={newExercise.video_url}
-                      onChange={(e) => setNewExercise((p) => ({ ...p, video_url: e.target.value }))}
-                      placeholder="Видео URL"
-                    />
-                    <input
-                      className={styles.formInput}
-                      value={newExercise.exercise_description}
-                      onChange={(e) =>
-                        setNewExercise((p) => ({ ...p, exercise_description: e.target.value }))
-                      }
-                      placeholder="Описание"
-                    />
-                  </div>
-
-                  <div className={styles.formActions}>
-                    <button type="submit" className={styles.primaryBtn} disabled={creating}>
-                      {creating ? 'Создание…' : 'Создать'}
-                    </button>
-                  </div>
-                </form>
-              </div>
+                <div className={styles.formActions}>
+                  <button type="submit" className={styles.primaryBtn} disabled={creating}>
+                    {creating ? 'Создание…' : 'Создать'}
+                  </button>
+                </div>
+              </form>
             )}
           </div>
         </div>

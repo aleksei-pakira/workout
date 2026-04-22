@@ -3,38 +3,39 @@
 .form {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 20px;
-}
-
-.formTitle {
-  font-size: 28px;
-  margin-bottom: 30px;
-  color: #333;
+  padding: 0;
 }
 
 .formSection {
-  background: white;
-  border-radius: 12px;
+  background: var(--surface, #fff);
+  border-radius: 14px;
   padding: 25px;
   margin-bottom: 25px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border, #e2e8f0);
+  position: relative;
+  overflow: hidden;
+}
+
+.formSection::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0;
+  height: 3px;
+  background: var(--primary, #ce1126);
+  border-radius: 0 0 10px 10px;
 }
 
 .formGroup {
   margin-bottom: 20px;
 }
 
-.label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #555;
-}
-
 .input, .textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #e2e8f0);
   border-radius: 8px;
   font-size: 16px;
   font-family: inherit;
@@ -43,8 +44,8 @@
 
 .input:focus, .textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102,126,234,0.1);
+  border-color: var(--hover-text, #b87a6b);
+  box-shadow: 0 0 0 4px rgba(184, 122, 107, 0.15);
 }
 
 .textarea {
@@ -59,42 +60,43 @@
   margin-bottom: 20px;
 }
 
-.sectionTitle {
-  margin: 0;
-  font-size: 20px;
-  color: #333;
-}
-
 .addExerciseBtn {
   padding: 8px 16px;
-  background-color: #667eea;
-  color: white;
-  border: none;
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary, #ce1126);
+  border: 1px solid rgba(206, 17, 38, 0.25);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
+  font-weight: 800;
 }
 
 .addExerciseBtn:hover {
-  background-color: #5a67d8;
-  transform: translateY(-1px);
-}
-
-.emptyExercises {
-  text-align: center;
-  padding: 40px;
-  color: #999;
-  background: #f9f9f9;
-  border-radius: 8px;
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
 }
 
 .exerciseCard {
-  background: #f9f9f9;
-  border-radius: 12px;
+  background: var(--surface, #fff);
+  border-radius: 14px;
   padding: 20px;
   margin-bottom: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border, #e2e8f0);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+
+.exerciseCard::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 0;
+  height: 3px;
+  background: var(--primary, #ce1126);
+  border-radius: 0 0 10px 10px;
 }
 
 .exerciseHeader {
@@ -102,79 +104,96 @@
 }
 
 .exerciseSelectRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
   gap: 10px;
   margin-bottom: 10px;
   align-items: center;
 }
 
 .exerciseSelect {
-  flex: 2;
+  width: 100%;
+  min-width: 0;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #e2e8f0);
   border-radius: 8px;
   font-size: 14px;
+  background: var(--surface, #fff);
+  box-sizing: border-box;
 }
 
 .orText {
   color: #999;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .exerciseInput {
-  flex: 1;
+  width: 100%;
+  min-width: 0;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #e2e8f0);
   border-radius: 8px;
   font-size: 14px;
+  background: var(--surface, #fff);
+  box-sizing: border-box;
 }
 
 .removeExerciseBtn {
   padding: 8px 12px;
-  background-color: #f44336;
-  color: white;
-  border: none;
+  background: transparent;
+  color: var(--primary, #ce1126);
+  border: 1px solid rgba(206, 17, 38, 0.3);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 800;
 }
 
 .removeExerciseBtn:hover {
-  background-color: #d32f2f;
+  background: rgba(206, 17, 38, 0.08);
+  border-color: rgba(206, 17, 38, 0.5);
 }
 
 .exerciseNotesInput {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #e2e8f0);
   border-radius: 6px;
   font-size: 14px;
   box-sizing: border-box;
+  background: var(--surface, #fff);
 }
 
 .setsTable {
   overflow-x: auto;
+  max-width: 100%;
+  margin-top: 14px;
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
 }
 
 .setsTable table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: var(--surface, #fff);
   border-radius: 8px;
   overflow: hidden;
+  border: none;
 }
 
 .setsTable th {
   text-align: left;
   padding: 12px;
-  background-color: #e0e0e0;
+  background: #f1f5f9;
   font-weight: 600;
   font-size: 14px;
 }
 
 .setsTable td {
   padding: 10px 12px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border, #e2e8f0);
 }
 
 .setNumber {
@@ -186,61 +205,67 @@
 .setInput {
   width: 80px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #e2e8f0);
   border-radius: 4px;
   text-align: center;
+  background: var(--surface, #fff);
 }
 
 .rpeInput {
   width: 60px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #e2e8f0);
   border-radius: 4px;
   text-align: center;
+  background: var(--surface, #fff);
 }
 
 .setNotesInput {
   width: 120px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #e2e8f0);
   border-radius: 4px;
   font-size: 12px;
+  background: var(--surface, #fff);
 }
 
 .statusSelect {
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #e2e8f0);
   border-radius: 4px;
-  background: white;
+  background: var(--surface, #fff);
 }
 
 .removeSetBtn {
   padding: 4px 8px;
-  background-color: #f44336;
-  color: white;
-  border: none;
+  background: transparent;
+  color: var(--primary, #ce1126);
+  border: 1px solid rgba(206, 17, 38, 0.3);
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
 }
 
 .removeSetBtn:hover {
-  background-color: #d32f2f;
+  background: rgba(206, 17, 38, 0.08);
+  border-color: rgba(206, 17, 38, 0.5);
 }
 
 .addSetBtn {
   margin-top: 15px;
   padding: 8px 16px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary, #ce1126);
+  border: 1px solid rgba(206, 17, 38, 0.25);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 800;
 }
 
 .addSetBtn:hover {
-  background-color: #45a049;
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
 }
 
 .formActions {
@@ -252,36 +277,38 @@
 .submitBtn {
   flex: 2;
   padding: 14px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 10px;
+  background: var(--primary, #ce1126);
+  color: #fff;
+  border: 1px solid var(--primary, #ce1126);
+  border-radius: 999px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 900;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background-color: #45a049;
-  transform: translateY(-2px);
+  background: var(--primary-hover, #b50f22);
+  border-color: var(--primary-hover, #b50f22);
 }
 
 .cancelBtn {
   flex: 1;
   padding: 14px;
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 10px;
+  background: var(--surface, #fff);
+  color: var(--text, #1a1a1a);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 999px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 900;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .cancelBtn:hover {
-  background-color: #5a6268;
+  background: var(--hover-bg, #f4ece9);
+  border-color: var(--hover-text, #b87a6b);
+  color: var(--hover-text, #b87a6b);
 }
 
 .submitBtn:disabled, .cancelBtn:disabled {
@@ -302,22 +329,85 @@
   }
 
   .exerciseSelectRow {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
-  .exerciseSelect, .exerciseInput {
+  .exerciseSelect,
+  .exerciseInput {
     width: 100%;
   }
 
+  .orText {
+    display: none;
+  }
+
   .setsTable {
-    font-size: 12px;
+    overflow-x: hidden;
   }
 
   .setInput, .rpeInput {
     width: 60px;
   }
 
+  .setsTable table {
+    table-layout: fixed;
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .setsTable th,
+  .setsTable td {
+    padding: 8px 6px;
+    vertical-align: middle;
+  }
+
+  /* Скрываем № (1-я колонка) и RPE (5-я колонка) на мобиле */
+  .setsTable th:nth-child(1),
+  .setsTable td:nth-child(1),
+  .setsTable th:nth-child(5),
+  .setsTable td:nth-child(5) {
+    display: none;
+  }
+
+  /* Заголовок колонки удаления (7-я) скрываем, кнопку оставляем */
+  .setsTable th:nth-child(7) {
+    display: none;
+  }
+
+  .statusSelect {
+    width: 100%;
+  }
+
+  .setNotesInput {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .removeSetBtn {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    border-radius: 999px;
+    padding: 6px 10px;
+  }
+
   .formActions {
     flex-direction: column;
+  }
+}
+
+@media (max-width: 980px) {
+  .exerciseSelectRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-auto-rows: auto;
+  }
+
+  .orText {
+    display: none;
+  }
+
+  .exerciseInput {
+    grid-column: 1 / -1;
   }
 }

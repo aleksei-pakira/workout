@@ -168,7 +168,7 @@ function WorkoutDetail() {
         </p>
       )}
 
-      <h2 style={{ marginTop: '30px' }}>🏋️ Упражнения и подходы</h2>
+      <h2 style={{ marginTop: '30px' }}>Упражнения и подходы</h2>
 
       {exercises.length === 0 ? (
         <p style={{ color: '#999', textAlign: 'center', padding: '40px' }}>

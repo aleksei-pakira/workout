@@ -244,7 +244,7 @@ function HomePage() {
                   onClick={() => navigate('/workouts/create')}
                   className={styles.quickActionBtnPrimaryCompact}
                 >
-                  ➕ Новая
+                  Создать тренировку
                 </button>
               </div>
             </div>
@@ -279,7 +279,6 @@ function HomePage() {
                     </div>
                     <div className={styles.folderStats}>
                       <span className={styles.folderStat}>
-                        <span className={styles.folderStatIcon}>🏋️</span>
                         {workout.exercises_count || 0}
                       </span>
                       <span className={styles.folderStat}>

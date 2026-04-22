@@ -16,9 +16,10 @@ function WorkoutForm() {
   // Основные поля тренировки
   const [formData, setFormData] = useState({
     title: '',
-    date: new Date().toISOString().split('T')[0],
+    date: '',
     notes: ''
   });
+  const [dateInputType, setDateInputType] = useState('text');
 
   // Упражнения с подходами
   const [exercises, setExercises] = useState([]);
@@ -56,6 +57,7 @@ function WorkoutForm() {
           date: workout.date.split('T')[0],
           notes: workout.notes || ''
         });
+        setDateInputType('date');
 
         // Загружаем упражнения тренировки
         const workoutExercises = await pb.collection('workout_exercises').getFullList({
@@ -224,7 +226,7 @@ function WorkoutForm() {
       // Сохраняем упражнения и подходы
       await saveExercisesAndSets(workout.id);
 
-      alert(isEdit ? '✅ Тренировка обновлена!' : '✅ Тренировка создана!');
+      alert(isEdit ? 'Тренировка обновлена!' : 'Тренировка создана!');
       navigate(`/workouts/${workout.id}`);
     } catch (error) {
       console.error('❌ Ошибка:', error);
@@ -294,60 +296,49 @@ function WorkoutForm() {
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
-      <h2 className={styles.formTitle}>
-        {isEdit ? '✏️ Редактирование тренировки' : '➕ Новая тренировка'}
-      </h2>
-
       {/* Основные поля */}
-      <div className={styles.formSection}>
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Название тренировки (необязательно)</label>
-          <input
-            type="text"
-            placeholder="Например: Тренировка ног"
-            value={formData.title}
-            onChange={(e) => setFormData({...formData, title: e.target.value})}
-            className={styles.input}
-          />
-        </div>
+      <div className={styles.formGroup}>
+        <input
+          type="text"
+          placeholder="Workout name (optional)"
+          value={formData.title}
+          onChange={(e) => setFormData({...formData, title: e.target.value})}
+          className={styles.input}
+        />
+      </div>
 
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Дата тренировки *</label>
-          <input
-            type="date"
-            value={formData.date}
-            onChange={(e) => setFormData({...formData, date: e.target.value})}
-            className={styles.input}
-            required
-          />
-        </div>
+      <div className={styles.formGroup}>
+        <input
+          type={dateInputType}
+          placeholder="Date"
+          value={formData.date}
+          onChange={(e) => setFormData({...formData, date: e.target.value})}
+          onFocus={() => setDateInputType('date')}
+          onBlur={() => {
+            if (!formData.date) setDateInputType('text');
+          }}
+          className={styles.input}
+          required
+        />
+      </div>
 
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Общие заметки</label>
-          <textarea
-            placeholder="Общие заметки к тренировке..."
-            value={formData.notes}
-            onChange={(e) => setFormData({...formData, notes: e.target.value})}
-            rows="3"
-            className={styles.textarea}
-          />
-        </div>
+      <div className={styles.formGroup}>
+        <textarea
+          placeholder="Workout notes (optional)"
+          value={formData.notes}
+          onChange={(e) => setFormData({...formData, notes: e.target.value})}
+          rows="3"
+          className={styles.textarea}
+        />
       </div>
 
       {/* Упражнения */}
       <div className={styles.formSection}>
         <div className={styles.sectionHeader}>
-          <h3 className={styles.sectionTitle}>🏋️ Упражнения и подходы</h3>
           <button type="button" onClick={addExercise} className={styles.addExerciseBtn}>
             + Добавить упражнение
           </button>
         </div>
-
-        {exercises.length === 0 && (
-          <div className={styles.emptyExercises}>
-            <p>Нет упражнений. Нажмите "Добавить упражнение" чтобы начать.</p>
-          </div>
-        )}
 
         {exercises.map((exercise, exIndex) => (
           <div key={exIndex} className={styles.exerciseCard}>
@@ -358,17 +349,16 @@ function WorkoutForm() {
                   onChange={(e) => updateExercise(exIndex, 'exerciseId', e.target.value)}
                   className={styles.exerciseSelect}
                 >
-                  <option value="">-- Выберите из справочника --</option>
+                  <option value="">Select exercise…</option>
                   {exercisesList.map(ex => (
                     <option key={ex.id} value={ex.id}>
                       {ex.exercise_name} {ex.muscle_group ? `(${ex.muscle_group})` : ''}
                     </option>
                   ))}
                 </select>
-                <span className={styles.orText}>или</span>
                 <input
                   type="text"
-                  placeholder="Своё название"
+                  placeholder="Custom name…"
                   value={exercise.customName}
                   onChange={(e) => updateExercise(exIndex, 'customName', e.target.value)}
                   className={styles.exerciseInput}
@@ -383,7 +373,7 @@ function WorkoutForm() {
               </div>
               <input
                 type="text"
-                placeholder="Заметки к упражнению"
+                placeholder="Exercise notes…"
                 value={exercise.notes}
                 onChange={(e) => updateExercise(exIndex, 'notes', e.target.value)}
                 className={styles.exerciseNotesInput}
@@ -486,7 +476,11 @@ function WorkoutForm() {
       {/* Кнопки формы */}
       <div className={styles.formActions}>
         <button type="submit" disabled={loading} className={styles.submitBtn}>
-          {loading ? '⏳ Сохранение...' : (isEdit ? '💾 Сохранить изменения' : '✅ Создать тренировку')}
+          {loading
+            ? 'Сохранение...'
+            : isEdit
+              ? 'Сохранить изменения'
+              : 'Создать тренировку'}
         </button>
         <button type="button" onClick={() => navigate(-1)} className={styles.cancelBtn}>
           Отмена

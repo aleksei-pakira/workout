@@ -181,7 +181,7 @@
 /* Быстрые действия */
 .quickActionsCompact {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
   margin-top: 6px;
 }
@@ -207,15 +207,18 @@
 
 .quickActionBtnPrimaryCompact {
   composes: quickActionBtnCompact;
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary);
+  font-weight: 900;
 }
 
 .quickActionBtnPrimaryCompact:hover {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
-  color: #ffffff;
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
+  color: var(--primary);
 }
 
 /* Цитата */
