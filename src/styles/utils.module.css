@@ -1,0 +1,86 @@
+/* src/styles/utils.module.css */
+
+/* Базовый класс для всех кнопок */
+.btn {
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+  padding: 8px 16px;
+}
+
+.btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Варианты кнопок */
+.btnPrimary {
+  composes: btn;
+  background-color: #4CAF50;
+  color: white;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background-color: #45a049;
+}
+
+.btnDanger {
+  composes: btn;
+  background-color: #f44336;
+  color: white;
+}
+
+.btnDanger:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+.btnWarning {
+  composes: btn;
+  background-color: #ff9800;
+  color: white;
+}
+
+.btnWarning:hover:not(:disabled) {
+  background-color: #f57c00;
+}
+
+/* Формы */
+.formInput {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: inherit;
+  box-sizing: border-box;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+/* Загрузка */
+.loadingContainer {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 18px;
+}
+
+/* Остальные утилиты */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ... остальные стили которые вам нужны */

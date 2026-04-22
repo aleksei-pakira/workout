@@ -1,0 +1,194 @@
+/* src/pages/WorkoutCreatePage.module.css */
+@value utils: '../styles/utils.module.css';
+
+.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+}
+
+.content {
+  margin-top: var(--header-height, 70px);
+  padding: 30px 20px;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Заголовок страницы */
+.header {
+  max-width: 800px;
+  margin: 0 auto 30px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.headerIcon {
+  font-size: 32px;
+  background-color: var(--primary-color, #4CAF50);
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3);
+}
+
+.headerTitle {
+  flex: 1;
+}
+
+.headerTitle h1 {
+  margin: 0 0 5px;
+  color: var(--text-primary, #333);
+  font-size: 28px;
+}
+
+.headerTitle p {
+  margin: 0;
+  color: var(--text-secondary, #666);
+  font-size: 16px;
+}
+
+/* Контейнер для формы */
+.formContainer {
+  max-width: 800px;
+  margin: 0 auto;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.formContainer:hover {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+/* Подсказки */
+.tipsSection {
+  max-width: 800px;
+  margin: 30px auto 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.tipCard {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.tipCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  border-color: var(--primary-light, #C8E6C9);
+}
+
+.tipIcon {
+  font-size: 24px;
+  background-color: var(--primary-light, #C8E6C9);
+  color: var(--primary-dark, #388E3C);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tipContent {
+  flex: 1;
+}
+
+.tipContent h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--text-primary, #333);
+}
+
+.tipContent p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary, #666);
+  line-height: 1.5;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .content {
+    padding: 20px 15px;
+  }
+
+  .header {
+    margin-bottom: 20px;
+  }
+
+  .headerIcon {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+  }
+
+  .headerTitle h1 {
+    font-size: 24px;
+  }
+
+  .headerTitle p {
+    font-size: 14px;
+  }
+
+  .tipsSection {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    margin-top: 20px;
+  }
+
+  .tipCard {
+    padding: 15px;
+  }
+}
+
+/* Анимация загрузки */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary, #666);
+}
+
+/* Состояние ошибки */
+.error {
+  max-width: 800px;
+  margin: 20px auto 0;
+  padding: 20px;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 8px;
+  color: #c62828;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.errorIcon {
+  font-size: 24px;
+}

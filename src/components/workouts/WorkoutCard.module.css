@@ -1,0 +1,120 @@
+/* src/components/workouts/WorkoutCard.module.css */
+@value utils: '../../styles/utils.module.css';
+
+.card {
+  composes: card cardHover from '../../styles/utils.module.css';
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.card:hover::before {
+  opacity: 1;
+}
+
+.date {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.notes {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 15px;
+  line-height: 1.4;
+  max-height: 60px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.stats {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.statIcon {
+  font-size: 16px;
+}
+
+.statValue {
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.badgeToday {
+  composes: badge;
+  background-color: var(--success-light);
+  color: var(--success-dark);
+}
+
+.badgePast {
+  composes: badge;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.badgeFuture {
+  composes: badge;
+  background-color: var(--secondary-light);
+  color: var(--secondary-dark);
+}
+
+.volume {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.volumeValue {
+  font-weight: bold;
+  color: var(--primary-color);
+}

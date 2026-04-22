@@ -1,0 +1,271 @@
+/* src/pages/LoginPage.module.css */
+@value utils: '../styles/utils.module.css';
+
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  /* background: linear-gradient(...); */
+  /* background-color: #f5f5f5; */
+  background: #fff;
+  padding: 20px;
+}
+
+/* Карточка входа */
+.card {
+  padding: 40px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  max-width: 400px;
+  width: 100%;
+  animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Заголовок */
+.title {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #333;
+  font-size: 28px;
+}
+
+.titleIcon {
+  margin-right: 10px;
+}
+
+/* Сообщение об ошибке */
+.errorMessage {
+  color: #721c24;
+  padding: 12px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.errorIcon {
+  font-size: 18px;
+}
+
+/* Контейнер кнопок */
+.buttonContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Базовые стили для кнопок входа */
+.loginButton {
+  padding: 15px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.loginButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.loginButton::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.loginButton:hover:not(:disabled)::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Кнопка администратора */
+.adminButton {
+  composes: loginButton;
+  background-color: #4CAF50;
+  color: white;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.adminButton:hover:not(:disabled) {
+  background-color: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+.adminButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Кнопка пользователя */
+.userButton {
+  composes: loginButton;
+  background-color: #2196F3;
+  color: white;
+  box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
+}
+
+.userButton:hover:not(:disabled) {
+  background-color: #1e88e5;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+}
+
+.userButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Иконки в кнопках */
+.buttonIcon {
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+.loginButton:hover:not(:disabled) .buttonIcon {
+  transform: scale(1.1);
+}
+
+/* Лоадер для кнопок */
+.loader {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+  margin-left: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Дополнительная информация */
+.infoText {
+  text-align: center;
+  margin-top: 20px;
+  color: #666;
+  font-size: 13px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.demoCredentials {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 10px;
+  font-family: monospace;
+  color: #495057;
+}
+
+/* Адаптивность */
+@media (max-width: 480px) {
+  .card {
+    padding: 30px 20px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .loginButton {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
+/* Состояние загрузки */
+.loading {
+  pointer-events: none;
+}
+
+/* Анимация появления для карточки */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.card {
+  animation: fadeIn 0.5s ease;
+}
+
+.registerLink {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+  color: #666;
+  font-size: 14px;
+}
+
+.registerLink a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 5px;
+}
+
+.registerLink a:hover {
+  text-decoration: underline;
+}
+
+.registerLink {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+  color: #666;
+  font-size: 14px;
+}
+
+.registerLink a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 5px;
+}
+
+.registerLink a:hover {
+  text-decoration: underline;
+}

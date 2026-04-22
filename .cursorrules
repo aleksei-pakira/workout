@@ -1,0 +1,35 @@
+# .cursorrules - Конфигурация AI для тренировочного дневника
+
+## 📌 О проекте
+Проект: Тренировочный дневник
+Технологии: React, Vite, PocketBase, CSS Modules
+
+## 🎯 Структура проекта
+~/workout/
+├── src/
+│   ├── components/          # React компоненты
+│   │   ├── auth/            # Авторизация
+│   │   ├── layout/          # Header, PrivateRoute
+│   │   ├── workouts/        # WorkoutForm, WorkoutList
+│   │   ├── exercises/       # ExerciseSelect
+│   │   └── sets/            # SetTable, SetRow
+│   ├── pages/               # Страницы приложения
+│   ├── lib/                 # pocketbase.js
+│   ├── styles/              # Глобальные стили и CSS модули
+│   └── App.jsx
+
+## 📦 PocketBase (Бэкенд)
+URL: http://127.0.0.1:8090
+Коллекции: users, exercises, workouts, workout_exercises, sets
+
+## 🎨 Стилизация (CSS Modules)
+- Каждый компонент имеет свой .module.css файл
+- Используем composes для переиспользования стилей
+- НЕ используем инлайн-стили в JSX
+
+## 🤖 Правила для AI
+1. Всегда добавляй requestKey: null в запросы PocketBase
+2. Для стилей используй CSS Modules, не предлагай инлайн-стили
+3. При генерации компонента создавай .module.css файл
+4. Добавляй обработку ошибок через try/catch
+5. Используй pb.authStore.model для текущего пользователя

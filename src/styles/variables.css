@@ -1,0 +1,64 @@
+/* src/styles/variables.css */
+:root {
+  /* Цветовая схема */
+  --primary-color: #4CAF50;
+  --primary-dark: #388E3C;
+  --primary-light: #C8E6C9;
+
+  --secondary-color: #2196F3;
+  --secondary-dark: #1976D2;
+  --secondary-light: #BBDEFB;
+
+  --danger-color: #f44336;
+  --danger-dark: #d32f2f;
+  --danger-light: #ffcdd2;
+
+  --warning-color: #ff9800;
+  --warning-dark: #ed6c02;
+  --warning-light: #ffe0b2;
+
+  --success-color: #4CAF50;
+  --success-dark: #2e7d32;
+  --success-light: #a5d6a7;
+
+  /* Нейтральные цвета */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-disabled: #999999;
+
+  --bg-primary: #fafafa;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #eeeeee;
+
+  --border-color: #dddddd;
+  --border-light: #e0e0e0;
+
+  /* Тени */
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 16px rgba(0,0,0,0.1);
+
+  /* Отступы */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Скругления */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-circle: 50%;
+
+  /* Анимации */
+  --transition-fast: 0.2s;
+  --transition-normal: 0.3s;
+  --transition-slow: 0.5s;
+
+  /* Размеры */
+  --header-height: 70px;
+  --container-max-width: 1200px;
+  --container-padding: 20px;
+}
