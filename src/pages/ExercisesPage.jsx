@@ -118,7 +118,7 @@ function ExercisesPage() {
   useEffect(() => {
     const syncAvatar = () => {
       const u = pb.authStore.model;
-      if (u?.avatar) setAvatar(pb.files.getUrl(u, u.avatar));
+      if (u?.avatar) setAvatar(pb.files.getURL(u, u.avatar));
       else setAvatar(null);
     };
 
@@ -150,7 +150,7 @@ function ExercisesPage() {
     try {
       setUploading(true);
       const updated = await pb.collection('users').update(user.id, formData, { requestKey: null });
-      setAvatar(pb.files.getUrl(updated, updated.avatar));
+      setAvatar(pb.files.getURL(updated, updated.avatar));
     } catch (error) {
       console.error('Ошибка загрузки фото:', error);
       alert('Не удалось загрузить фото');

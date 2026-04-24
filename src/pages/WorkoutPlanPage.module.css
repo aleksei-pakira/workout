@@ -1,0 +1,328 @@
+/* src/pages/WorkoutPlanPage.module.css */
+
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-muted: #f7fafc;
+  --text: #1a1a1a;
+  --muted: #4a4a4a;
+  --muted-2: #6b7280;
+  --border: #e2e8f0;
+
+  --primary: #ce1126;
+  --primary-hover: #b50f22;
+
+  --hover-text: #b87a6b;
+  --hover-bg: #f4ece9;
+
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+
+  --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.page {
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.content {
+  margin-top: var(--header-height, 70px);
+  max-width: 900px;
+  width: 100%;
+  padding: 22px 18px;
+  box-sizing: border-box;
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.headerMain {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.subtitle {
+  margin: 6px 0 0;
+  color: var(--muted-2);
+  font-size: 14px;
+}
+
+.backBtn {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 12px;
+  min-height: 44px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.backBtn:hover {
+  background: var(--hover-bg);
+  border-color: var(--hover-text);
+  color: var(--hover-text);
+}
+
+.weekCard {
+  margin-top: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 12px;
+}
+
+.dayRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  min-width: 0;
+}
+
+.dayRow + .dayRow {
+  margin-top: 10px;
+}
+
+.dayInfo {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dayTitle {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dayKey {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.createBtn {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary);
+  padding: 10px 12px;
+  min-height: 44px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.createBtn:hover {
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 20px 15px;
+  }
+
+  .headerRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .backBtn {
+    width: 100%;
+  }
+
+  .createBtn {
+    min-width: 110px;
+  }
+}
+
+.toolbar {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.weekToggle {
+  display: flex;
+  gap: 8px;
+}
+
+.weekToggleBtn {
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 12px;
+  min-height: 44px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.weekToggleBtnActive {
+  composes: weekToggleBtn;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.10);
+  color: var(--primary);
+}
+
+.bulkActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.bulkBtn {
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 12px;
+  min-height: 44px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bulkBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bulkBtnPrimary {
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary);
+  padding: 10px 12px;
+  min-height: 44px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bulkBtnPrimary:hover:not(:disabled) {
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
+}
+
+.baseTitle {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.baseTitleLabel {
+  font-size: 12px;
+  color: var(--muted-2);
+  font-weight: 900;
+}
+
+.baseTitleInput {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  min-height: 44px;
+  font-weight: 700;
+  outline: none;
+}
+
+.baseTitleInput:focus {
+  border-color: rgba(206, 17, 38, 0.35);
+  box-shadow: 0 0 0 3px rgba(206, 17, 38, 0.10);
+}
+
+.baseTitleHint {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(206, 17, 38, 0.18);
+  background: rgba(206, 17, 38, 0.06);
+  color: var(--text);
+}
+
+.daySelect {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.daySelect input {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .weekToggle {
+    width: 100%;
+  }
+
+  .weekToggleBtn,
+  .bulkBtn,
+  .bulkBtnPrimary {
+    width: 100%;
+  }
+
+  .bulkActions {
+    justify-content: stretch;
+  }
+}

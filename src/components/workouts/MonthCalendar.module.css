@@ -1,0 +1,102 @@
+.wrapper {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 14px 14px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.title {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.navBtn {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.navBtn:hover {
+  background: var(--surface-muted);
+}
+
+.weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--muted-2);
+  padding: 6px 0;
+}
+
+.grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 1px;
+}
+
+.cell {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  box-sizing: border-box;
+  padding: 8px;
+  min-height: 54px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cellOutMonth {
+  background: var(--surface-muted);
+  color: var(--muted-2);
+  opacity: 0.7;
+}
+
+.cellInMonth {
+  opacity: 1;
+}
+
+.cellToday {
+  border-color: rgba(206, 17, 38, 0.35);
+  box-shadow: 0 0 0 3px rgba(206, 17, 38, 0.10);
+}
+
+.dayNum {
+  font-size: 13px;
+  font-weight: 900;
+  color: inherit;
+}
+

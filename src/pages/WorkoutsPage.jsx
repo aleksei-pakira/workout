@@ -1,8 +1,8 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import Header from '../components/layout/Header';
-import WorkoutDetailContent from '../components/workouts/WorkoutDetailContent';
+import WorkoutCard from '../components/workouts/WorkoutCard';
 import styles from './WorkoutsPage.module.css';
 
 function toYear(dateStr) {
@@ -25,14 +25,97 @@ function formatMonthTitleRu(dateStr) {
   return d.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
 }
 
+function toDayKey(input) {
+  const d = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getTodayKey() {
+  return toDayKey(new Date());
+}
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function formatDayTitleRu(date) {
+  return date.toLocaleDateString('ru-RU', { weekday: 'short', day: '2-digit', month: 'short' });
+}
+
 function WorkoutsPage() {
   const navigate = useNavigate();
   const user = pb.authStore.model;
 
   const currentYear = new Date().getFullYear();
 
+  // Правая колонка: “папки” месяцев текущего года + архив годов
+  const [selectedMonthKey, setSelectedMonthKey] = useState(null); // подсветка/запоминание
+  const [openMonthKey, setOpenMonthKey] = useState(null); // реально раскрытый месяц (тренировки)
+  const [openArchive, setOpenArchive] = useState(false);
+  const [openArchiveYear, setOpenArchiveYear] = useState(null);
+
+  const [historyYear, setHistoryYear] = useState(String(currentYear));
+  const [historyMonthKey, setHistoryMonthKey] = useState(toMonthKey(new Date().toISOString()));
+
   const [loading, setLoading] = useState(true);
   const [workouts, setWorkouts] = useState([]);
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const normalizedSearch = useMemo(() => searchQuery.trim().toLowerCase(), [searchQuery]);
+
+  const historyWorkouts = useMemo(() => {
+    if (!normalizedSearch) return workouts;
+    return workouts.filter((w) => {
+      const t = (w.title || '').toLowerCase();
+      const n = (w.notes || '').toLowerCase();
+      return t.includes(normalizedSearch) || n.includes(normalizedSearch);
+    });
+  }, [workouts, normalizedSearch]);
+
+  const todayKey = getTodayKey();
+
+  const todayWorkouts = useMemo(() => {
+    return workouts
+      .filter((w) => toDayKey(w.date) === todayKey)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [workouts, todayKey]);
+
+  const weekGroups = useMemo(() => {
+    const base = new Date();
+    base.setHours(0, 0, 0, 0);
+
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(base, i);
+      const key = toDayKey(date);
+      return {
+        key,
+        date,
+        title: formatDayTitleRu(date),
+        workouts: [],
+      };
+    });
+
+    const map = new Map(days.map((d) => [d.key, d]));
+
+    for (const w of workouts) {
+      const k = toDayKey(w.date);
+      const bucket = map.get(k);
+      if (bucket) bucket.workouts.push(w);
+    }
+
+    for (const d of days) {
+      d.workouts.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+
+    return days;
+  }, [workouts]);
 
   // Левая колонка (как на HomePage)
   const [stats, setStats] = useState({
@@ -43,48 +126,6 @@ function WorkoutsPage() {
   });
   const [avatar, setAvatar] = useState(null);
   const [uploading, setUploading] = useState(false);
-
-// Правая колонка: “папки” месяцев текущего года + архив годов
-const [selectedMonthKey, setSelectedMonthKey] = useState(null); // подсветка/запоминание
-const [openMonthKey, setOpenMonthKey] = useState(null);         // реально раскрытый месяц (тренировки)
-const [openArchive, setOpenArchive] = useState(false);
-const [openArchiveYear, setOpenArchiveYear] = useState(null);
-const [openWorkoutId, setOpenWorkoutId] = useState(null);
-
-  const workoutCardRefs = useRef({});
-  const monthGridRef = useRef(null);
-  const [monthGridCols, setMonthGridCols] = useState(3);
-
-  const readCols = useCallback(() => {
-    const el = monthGridRef.current;
-    if (!el) return;
-    const raw = getComputedStyle(el).getPropertyValue('--cols').trim();
-    const parsed = parseInt(raw, 10);
-    if (Number.isFinite(parsed) && parsed > 0) setMonthGridCols(parsed);
-  }, []);
-
-  useEffect(() => {
-    readCols();
-    window.addEventListener('resize', readCols);
-    return () => window.removeEventListener('resize', readCols);
-  }, [readCols]);
-
-  useEffect(() => {
-    if (!openMonthKey) return;
-    const raf = requestAnimationFrame(() => readCols());
-    return () => cancelAnimationFrame(raf);
-  }, [openMonthKey, readCols]);
-
-  useEffect(() => {
-    if (!openWorkoutId) return;
-    const el = workoutCardRefs.current?.[openWorkoutId];
-    if (!el) return;
-    const t = setTimeout(() => {
-      el.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-      el.focus?.();
-    }, 0);
-    return () => clearTimeout(t);
-  }, [openWorkoutId]);
 
   useEffect(() => {
     const load = async () => {
@@ -120,7 +161,7 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
         // если у user есть avatar
         if (user?.avatar) {
           try {
-            setAvatar(pb.files.getUrl(user, user.avatar));
+            setAvatar(pb.files.getURL(user, user.avatar));
           } catch {
             // ignore
           }
@@ -155,7 +196,7 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
     try {
       setUploading(true);
       const updated = await pb.collection('users').update(user.id, formData, { requestKey: null });
-      setAvatar(pb.files.getUrl(updated, updated.avatar));
+      setAvatar(pb.files.getURL(updated, updated.avatar));
     } catch (error) {
       console.error('Ошибка загрузки фото:', error);
       alert('Не удалось загрузить фото');
@@ -167,7 +208,7 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
   const monthsCurrentYear = useMemo(() => {
     const map = new Map();
 
-    for (const w of workouts) {
+    for (const w of historyWorkouts) {
       const y = toYear(w.date);
       if (y !== currentYear) continue;
 
@@ -180,15 +221,15 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
       map.get(key).workouts.push(w);
     }
 
-    // сортируем месяцы по ключу YYYY-MM убыванию
-    return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));
-  }, [workouts, currentYear]);
+    // сортируем месяцы по ключу YYYY-MM возрастанию
+    return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+  }, [historyWorkouts, currentYear]);
 
   const archiveYears = useMemo(() => {
     // years < currentYear
     const yearsMap = new Map();
 
-    for (const w of workouts) {
+    for (const w of historyWorkouts) {
       const y = toYear(w.date);
       if (!y || y >= currentYear) continue;
 
@@ -212,11 +253,52 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
             }
             monthsMap.get(key).workouts.push(w);
           }
-          return Array.from(monthsMap.values()).sort((a, b) => b.key.localeCompare(a.key));
+          return Array.from(monthsMap.values()).sort((a, b) => a.key.localeCompare(b.key));
         })(),
       }))
       .sort((a, b) => b.year - a.year);
-  }, [workouts, currentYear]);
+  }, [historyWorkouts, currentYear]);
+
+  const historyYearsOptions = useMemo(() => {
+    const years = new Set();
+    for (const w of historyWorkouts) {
+      const y = toYear(w.date);
+      if (y) years.add(y);
+    }
+    // новые сверху
+    return Array.from(years).sort((a, b) => b - a);
+  }, [historyWorkouts]);
+
+  const historyMonthsForYear = useMemo(() => {
+    const y = parseInt(historyYear, 10);
+    if (!Number.isFinite(y)) return [];
+
+    const map = new Map();
+    for (const w of historyWorkouts) {
+      const wy = toYear(w.date);
+      if (wy !== y) continue;
+      const key = toMonthKey(w.date);
+      if (!key) continue;
+      if (!map.has(key)) map.set(key, { key, title: formatMonthTitleRu(w.date) });
+    }
+    // ранние сверху, поздние снизу
+    return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+  }, [historyWorkouts, historyYear]);
+
+  useEffect(() => {
+    if (!historyMonthsForYear.length) return;
+    const exists = historyMonthsForYear.some((m) => m.key === historyMonthKey);
+    if (exists) return;
+    // берём самый поздний доступный месяц (последний в asc)
+    setHistoryMonthKey(historyMonthsForYear[historyMonthsForYear.length - 1].key);
+  }, [historyMonthsForYear, historyMonthKey]);
+
+  const historyWorkoutsForSelectedMonth = useMemo(() => {
+    if (!historyMonthKey) return [];
+    return historyWorkouts
+      .filter((w) => toMonthKey(w.date) === historyMonthKey)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [historyWorkouts, historyMonthKey]);
 
   const quote = useMemo(
     () => ({
@@ -245,9 +327,7 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
           <div className={styles.leftColumn}>
             <div className={styles.profileCard}>
               <div className={styles.profileHeader}>
-                <div className={styles.avatar}>
-                  {user?.email?.[0]?.toUpperCase?.() || '👤'}
-                </div>
+                <div className={styles.avatar}>{user?.email?.[0]?.toUpperCase?.() || '👤'}</div>
 
                 <div className={styles.userInfoCompact}>
                   <h2 className={styles.userNameCompact}>
@@ -260,22 +340,12 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
               <div
                 className={styles.photoUploadArea}
                 onClick={() => document.getElementById('avatarInputWorkouts')?.click()}
-                style={
-                  avatar
-                    ? {
-                        backgroundImage: `url(${avatar})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }
-                    : {}
-                }
               >
+                {avatar && <img className={styles.photoImg} src={avatar} alt="" />}
                 {!avatar && (
                   <>
                     <div className={styles.photoIcon}>📷</div>
-                    <div className={styles.photoText}>
-                      {uploading ? '⏳ Загрузка...' : 'Загрузить фото'}
-                    </div>
+                    <div className={styles.photoText}>{uploading ? '⏳ Загрузка...' : 'Загрузить фото'}</div>
                     <div className={styles.photoSubtext}>
                       Нажмите чтобы выбрать изображение
                       <br />
@@ -289,7 +359,7 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
                   type="file"
                   accept="image/*"
                   onChange={handleAvatarUpload}
-                  style={{ display: 'none' }}
+                  className={styles.hiddenInput}
                 />
               </div>
 
@@ -298,17 +368,14 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
                   <div className={styles.statValueCompact}>{stats.totalWorkouts}</div>
                   <div className={styles.statLabelCompact}>тренировок</div>
                 </div>
-
                 <div className={styles.statItemCompact}>
                   <div className={styles.statValueCompact}>{stats.weeklyWorkouts}</div>
                   <div className={styles.statLabelCompact}>за неделю</div>
                 </div>
-
                 <div className={styles.statItemCompact}>
                   <div className={styles.statValueCompact}>{stats.bestWeight} кг</div>
                   <div className={styles.statLabelCompact}>макс. вес</div>
                 </div>
-
                 <div className={styles.statItemCompact}>
                   <div className={styles.statValueCompact}>{stats.favoriteExercise}</div>
                   <div className={styles.statLabelCompact}>любимое</div>
@@ -332,40 +399,154 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
             </div>
           </div>
 
-          {/* Правая колонка: папки месяцев текущего года + архив прошлых лет */}
+          {/* Правая колонка */}
           <div className={styles.rightColumn}>
-            <div className={styles.mobileActions}>
-              <button
-                type="button"
-                className={styles.mobileCreateBtn}
-                onClick={() => navigate('/workouts/create')}
-              >
-                Создать тренировку
-              </button>
+            <div className={styles.todaySection}>
+              <div className={styles.todayHeader}>
+                <h2 className={styles.todayTitle}>Сегодня</h2>
+                <div className={styles.todayMeta}>{todayWorkouts.length}</div>
+              </div>
+
+              {todayWorkouts.length > 0 ? (
+                <div className={styles.todayList}>
+                  {todayWorkouts.map((w) => (
+                    <WorkoutCard
+                      key={w.id}
+                      workout={w}
+                      classes={styles}
+                      onOpen={() => navigate(`/workouts/${w.id}`)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.todayEmptyState}>
+                  На сегодня тренировок нет.
+                  <button
+                    type="button"
+                    className={styles.todayEmptyBtn}
+                    onClick={() => navigate('/workouts/create')}
+                  >
+                    Создать
+                  </button>
+                </div>
+              )}
             </div>
 
+            <div className={styles.weekSection}>
+              <div className={styles.weekHeader}>
+                <h2 className={styles.weekTitle}>Неделя</h2>
+                <div className={styles.weekMeta}>{weekGroups.reduce((s, d) => s + d.workouts.length, 0)}</div>
+              </div>
+
+              <div className={styles.weekList}>
+                {weekGroups.map((d) => (
+                  <div key={d.key} className={styles.dayGroup}>
+                    <div className={styles.dayHeader}>
+                      <div className={styles.dayTitle}>{d.title}</div>
+                      <div className={styles.dayCount}>{d.workouts.length}</div>
+                    </div>
+
+                    {d.workouts.length > 0 ? (
+                      <div className={styles.dayList}>
+                        {d.workouts.map((w) => (
+                          <WorkoutCard
+                            key={w.id}
+                            workout={w}
+                            classes={styles}
+                            onOpen={() => navigate(`/workouts/${w.id}`)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.dayEmptyBtn}
+                        onClick={() => navigate(`/workouts/create?date=${encodeURIComponent(d.key)}`)}
+                      >
+                        Создать
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.searchBar}>
+              <input
+                type="search"
+                className={styles.searchInput}
+                placeholder="Поиск по тренировкам (название/заметки)…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+
+              <button type="button" className={styles.planWeekBtn} onClick={() => navigate('/workouts/plan')}>
+                План недели
+              </button>
+
+              {searchQuery.trim() && (
+                <button type="button" className={styles.searchClearBtn} onClick={() => setSearchQuery('')}>
+                  Очистить
+                </button>
+              )}
+            </div>
+
+            <div className={styles.historyHeader}>
+              <h2 className={styles.historyTitle}>История</h2>
+            </div>
+
+            <div className={styles.historyMobile}>
+              <div className={styles.historyFiltersRow}>
+                <select className={styles.historySelect} value={historyYear} onChange={(e) => setHistoryYear(e.target.value)}>
+                  {historyYearsOptions.map((y) => (
+                    <option key={y} value={String(y)}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  className={styles.historySelect}
+                  value={historyMonthKey || ''}
+                  onChange={(e) => setHistoryMonthKey(e.target.value)}
+                >
+                  {historyMonthsForYear.map((m) => (
+                    <option key={m.key} value={m.key}>
+                      {m.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {historyWorkoutsForSelectedMonth.length > 0 ? (
+                <div className={styles.historyMonthList}>
+                  {historyWorkoutsForSelectedMonth.map((w) => (
+                    <WorkoutCard key={w.id} workout={w} classes={styles} onOpen={() => navigate(`/workouts/${w.id}`)} />
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.historyEmpty}>Нет тренировок за выбранный месяц</div>
+              )}
+            </div>
+
+            {/* Десктопная “папочная” история и архив остаются ниже (и скрываются на мобиле CSS) */}
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>📁 {currentYear}</h2>
             </div>
 
             {monthsCurrentYear.length > 0 ? (
               <>
-                {/* Папки месяцев текущего года */}
-                <div className={styles.workoutsGrid}>
+                <div className={styles.historyFoldersGrid}>
                   {monthsCurrentYear.map((m) => (
                     <div
                       key={m.key}
                       className={styles.workoutFolder}
-                      onClick={() => {
-                        setOpenWorkoutId(null);
-                        setOpenMonthKey((prev) => (prev === m.key ? null : m.key));
-                      }}
+                      onClick={() => setOpenMonthKey((prev) => (prev === m.key ? null : m.key))}
                       role="button"
                       tabIndex={0}
                     >
                       <div className={styles.folderIcon}>📁</div>
                       <h3 className={styles.folderTitle}>{m.title}</h3>
-
                       <div className={styles.folderStats}>
                         <span className={styles.folderStat}>
                           <span className={styles.folderStatIcon}>📄</span>
@@ -376,102 +557,34 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
                   ))}
                 </div>
 
-                {/* Раскрытый месяц: тренировки внутри (как HomePage папки) */}
                 {openMonthKey && (
                   <div className={styles.monthContent}>
                     <div className={styles.sectionHeader}>
                       <h2 className={styles.sectionTitle}>📁 Тренировки</h2>
                     </div>
-
-                    {(() => {
-                      const monthWorkouts =
-                        monthsCurrentYear.find((x) => x.key === openMonthKey)?.workouts || [];
-
-                      const openIdx = openWorkoutId
-                        ? monthWorkouts.findIndex((w) => w.id === openWorkoutId)
-                        : -1;
-
-                      const cols = monthGridCols || 3;
-                      const rowEndIndex =
-                        openIdx >= 0
-                          ? Math.min(
-                              monthWorkouts.length - 1,
-                              (Math.floor(openIdx / cols) + 1) * cols - 1
-                            )
-                          : -1;
-
-                      return (
-                        <div className={styles.workoutsGrid} ref={monthGridRef}>
-                          {monthWorkouts.map((workout, idx) => (
-                          <Fragment key={workout.id}>
-                            <div
-                              ref={(el) => {
-                                if (el) workoutCardRefs.current[workout.id] = el;
-                              }}
-                              className={styles.workoutFolder}
-                              onClick={() =>
-                                setOpenWorkoutId((prev) => (prev === workout.id ? null : workout.id))
-                              }
-                              role="button"
-                              tabIndex={0}
-                            >
-                              <div className={styles.folderIcon}>📁</div>
-
-                              <h3 className={styles.folderTitle}>
-                                {workout.title || 'Тренировка'}
-                              </h3>
-
-                              <div className={styles.folderDate}>
-                                📅 {new Date(workout.date).toLocaleDateString('ru-RU')}
-                              </div>
-
-                              <div className={styles.folderStats}>
-                                <span className={styles.folderStat}>
-                                  {workout.exercises_count || 0}
-                                </span>
-
-                                <span className={styles.folderStat}>
-                                  <span className={styles.folderStatIcon}>⚡</span>
-                                  {workout.total_sets || 0}
-                                </span>
-                              </div>
-                            </div>
-
-                            {openWorkoutId && idx === rowEndIndex && (
-                              <div className={styles.inlineWorkoutDetailInGrid}>
-                                <WorkoutDetailContent workoutId={openWorkoutId} variant="inline" showMeta={false} />
-                              </div>
-                            )}
-                          </Fragment>
-                          ))}
-                        </div>
-                      );
-                    })()}
+                    <div className={styles.monthWorkoutsList}>
+                      {(monthsCurrentYear.find((x) => x.key === openMonthKey)?.workouts || []).map((w) => (
+                        <WorkoutCard key={w.id} workout={w} classes={styles} onOpen={() => navigate(`/workouts/${w.id}`)} />
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* Архив прошлых лет */}
                 {archiveYears.length > 0 && (
                   <div className={styles.archiveSection}>
-                    <button
-                      type="button"
-                      className={styles.archiveToggle}
-                      onClick={() => setOpenArchive((v) => !v)}
-                    >
+                    <button type="button" className={styles.archiveToggle} onClick={() => setOpenArchive((v) => !v)}>
                       📦 Архив
                       <span className={styles.metaPill}>{archiveYears.reduce((s, y) => s + y.total, 0)}</span>
                     </button>
 
                     {openArchive && (
                       <div className={styles.archiveYears}>
-                        <div className={styles.workoutsGrid}>
+                        <div className={styles.historyFoldersGrid}>
                           {archiveYears.map((y) => (
                             <div
                               key={y.year}
                               className={styles.workoutFolder}
-                              onClick={() =>
-                                setOpenArchiveYear((prev) => (prev === y.year ? null : y.year))
-                              }
+                              onClick={() => setOpenArchiveYear((prev) => (prev === y.year ? null : y.year))}
                               role="button"
                               tabIndex={0}
                             >
@@ -493,7 +606,7 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
                               <h2 className={styles.sectionTitle}>📁 {openArchiveYear}</h2>
                             </div>
 
-                            <div className={styles.workoutsGrid}>
+                            <div className={styles.historyFoldersGrid}>
                               {archiveYears
                                 .find((x) => x.year === openArchiveYear)
                                 ?.months.map((m) => (
@@ -503,7 +616,6 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
                                     onClick={() => {
                                       setSelectedMonthKey(m.key);
                                       setOpenMonthKey(m.key);
-                                      setOpenWorkoutId(null);
                                     }}
                                     role="button"
                                     tabIndex={0}
@@ -530,14 +642,8 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
               <div className={styles.emptyFolder}>
                 <div className={styles.emptyIcon}>📁</div>
                 <h3 className={styles.emptyTitle}>Нет тренировок</h3>
-                <p className={styles.emptyText}>
-                  Создайте свою первую тренировку, чтобы начать отслеживать прогресс
-                </p>
-                <button
-                  type="button"
-                  onClick={() => navigate('/workouts/create')}
-                  className={styles.emptyBtn}
-                >
+                <p className={styles.emptyText}>Создайте свою первую тренировку, чтобы начать отслеживать прогресс</p>
+                <button type="button" onClick={() => navigate('/workouts/create')} className={styles.emptyBtn}>
                   ➕ Создать тренировку
                 </button>
               </div>

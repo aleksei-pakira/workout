@@ -138,6 +138,18 @@
   transform: translateY(-1px);
 }
 
+.photoImg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.hiddenInput {
+  display: none;
+}
+
 .photoIcon {
   font-size: 56px;
   margin-bottom: 12px;
@@ -253,6 +265,338 @@
   margin: 0;
 }
 
+/* ====== TODAY (мобильно-первый блок) ====== */
+.todaySection {
+  margin-top: 10px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.todayHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+
+.todayTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text);
+  min-width: 0;
+}
+
+.todayMeta {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--primary);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  white-space: nowrap;
+}
+
+.todayList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.workoutItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 12px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.workoutItem:active {
+  transform: translateY(1px);
+}
+
+.workoutItemMain {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.workoutItemTitle {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.25;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.workoutItemSub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.25;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.workoutItemMetaRow {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.workoutItemActions {
+  flex: 0 0 auto;
+}
+
+.openBtn {
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary);
+
+  font-weight: 900;
+  font-size: 13px;
+  padding: 10px 12px;
+  min-height: 44px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.openBtn:hover {
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
+}
+
+.todayEmptyState {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed #d7dde7;
+  background: var(--surface-muted);
+  color: var(--muted);
+
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.todayEmptyBtn {
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary);
+
+  font-weight: 900;
+  font-size: 13px;
+  padding: 10px 12px;
+  min-height: 44px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.todayEmptyBtn:hover {
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
+}
+
+@media (max-width: 768px) {
+  .todaySection {
+    padding: 12px;
+  }
+}
+
+/* ====== WEEK (7 дней) ====== */
+.weekSection {
+  margin-top: 14px;
+  padding: 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.weekHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+
+.weekTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text);
+  min-width: 0;
+}
+
+.weekMeta {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--muted);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  white-space: nowrap;
+}
+
+.weekList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.dayGroup {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.dayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  min-width: 0;
+}
+
+.dayTitle {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dayCount {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--primary);
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  white-space: nowrap;
+}
+
+.dayList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.dayEmpty {
+  color: var(--muted-2);
+  font-size: 13px;
+  padding: 8px 2px;
+}
+
+.dayEmptyBtn {
+  border-radius: 999px;
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary);
+
+  font-weight: 900;
+  font-size: 13px;
+  padding: 10px 12px;
+  min-height: 44px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dayEmptyBtn:hover {
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
+}
+
+@media (max-width: 768px) {
+  .weekSection {
+    padding: 12px;
+  }
+
+  .dayGroup {
+    padding: 10px;
+  }
+}
+
 /* ====== ПРАВАЯ КОЛОНКА: папки/тренировки (как HomePage) ====== */
 .rightColumn {
   display: flex;
@@ -292,10 +636,189 @@
 }
 
 .sectionTitle {
-  font-size: 22px;
-  color: var(--text);
   margin: 0;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  min-width: 0;
+}
+
+.historyMobile {
+  display: none;
+}
+
+.historyFiltersRow {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: 10px;
+  box-sizing: border-box;
+}
+
+.historySelect {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  padding: 12px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.historyMonthList {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.historyEmpty {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed #d7dde7;
+  background: var(--surface-muted);
+  color: var(--muted-2);
+}
+
+@media (max-width: 768px) {
+  /* На телефоне история = фильтры + список, папки скрываем */
+  .historyMobile {
+    display: block;
+  }
+
+  .historyFoldersGrid,
+  .monthContent,
+  .archiveSection {
+    display: none;
+  }
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  margin-top: 16px;
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+
+.historyTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.historyFoldersGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 240px);
+  justify-content: center;
+  gap: 16px;
+}
+
+/* В истории на телефоне делаем список (1 колонка) вместо квадратных папок */
+@media (max-width: 768px) {
+  .historyFoldersGrid {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    gap: 10px;
+  }
+
+  .historyFoldersGrid .workoutFolder {
+    aspect-ratio: auto;
+    padding: 14px;
+    min-height: 72px;
+  }
+
+  .historyFoldersGrid .folderIcon {
+    margin-bottom: 0;
+  }
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+
+  margin-top: 10px;
+}
+
+.searchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  padding: 12px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.planWeekBtn {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+
+  font-weight: 900;
+  font-size: 13px;
+  padding: 10px 12px;
+  min-height: 44px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.planWeekBtn:hover {
+  background: var(--hover-bg);
+  color: var(--hover-text);
+  border-color: var(--hover-text);
+}
+
+.searchClearBtn {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--muted);
+
+  font-weight: 900;
+  font-size: 13px;
+  padding: 10px 12px;
+  min-height: 44px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.searchClearBtn:hover {
+  background: var(--hover-bg);
+  color: var(--hover-text);
+  border-color: var(--hover-text);
 }
 
 /* Сетка папок: desktop 3 в ряд, mobile 2 в ряд */
@@ -437,6 +960,17 @@
 .monthContent {
   margin-top: 14px;
 }
+
+.monthWorkoutsList {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
 
 .inlineWorkoutDetail {
   margin-top: 14px;

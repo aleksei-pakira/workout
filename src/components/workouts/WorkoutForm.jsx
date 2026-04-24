@@ -1,6 +1,6 @@
 // src/components/workouts/WorkoutForm.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import pb from '../../lib/pocketbase';
 import styles from './WorkoutForm.module.css';
 
@@ -8,6 +8,8 @@ function WorkoutForm() {
   const navigate = useNavigate();
   const { id } = useParams(); // id тренировки если редактирование
   const isEdit = !!id;
+
+  const [searchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEdit);
@@ -20,6 +22,19 @@ function WorkoutForm() {
     notes: ''
   });
   const [dateInputType, setDateInputType] = useState('text');
+
+  useEffect(() => {
+    if (isEdit) return;
+    const q = searchParams.get('date');
+    if (!q) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(q)) return;
+
+    setFormData((prev) => {
+      if (prev.date) return prev;
+      return { ...prev, date: q };
+    });
+    setDateInputType('date');
+  }, [isEdit, searchParams]);
 
   // Упражнения с подходами
   const [exercises, setExercises] = useState([]);

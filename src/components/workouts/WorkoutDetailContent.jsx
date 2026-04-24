@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import pb from '../../lib/pocketbase';
 import styles from '../../pages/WorkoutDetailPage.module.css';
 
 function WorkoutDetailContent({ workoutId, variant = 'page', showMeta = true }) {
   const isInline = variant === 'inline';
+  const navigate = useNavigate();
   const user = pb.authStore.model;
   const [workout, setWorkout] = useState(null);
   const [exercises, setExercises] = useState([]);
@@ -282,6 +284,13 @@ function WorkoutDetailContent({ workoutId, variant = 'page', showMeta = true }) 
         <>
           <div className={styles.header}>
             <h1 className={styles.title}>{workout.title || 'Тренировка'}</h1>
+            <button
+              type="button"
+              className={styles.editBtn}
+              onClick={() => navigate(`/workouts/${workoutId}/edit`)}
+            >
+              Редактировать
+            </button>
           </div>
 
           <div className={styles.date}>
