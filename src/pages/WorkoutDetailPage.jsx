@@ -11,7 +11,7 @@ function WorkoutDetailPage() {
       <Header />
 
       <div className={styles.content}>
-        <WorkoutDetailContent workoutId={id} />
+        <WorkoutDetailContent workoutId={id} variant="page" />
       </div>
     </div>
   );

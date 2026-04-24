@@ -439,7 +439,7 @@ const [openWorkoutId, setOpenWorkoutId] = useState(null);
 
                             {openWorkoutId && idx === rowEndIndex && (
                               <div className={styles.inlineWorkoutDetailInGrid}>
-                                <WorkoutDetailContent workoutId={openWorkoutId} />
+                                <WorkoutDetailContent workoutId={openWorkoutId} variant="inline" showMeta={false} />
                               </div>
                             )}
                           </Fragment>

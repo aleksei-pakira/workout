@@ -450,20 +450,22 @@
 .inlineWorkoutDetailInGrid {
   grid-column: 1 / -1;
   margin-top: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  padding: 16px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 @media (max-width: 768px) {
   .inlineWorkoutDetail {
     padding: 12px;
+    min-width: 0;
   }
 
   .inlineWorkoutDetailInGrid {
-    padding: 12px;
+    padding: 0;
+    min-width: 0;
   }
 }
 
@@ -507,8 +509,26 @@
 }
 
 @media (max-width: 768px) {
+  .page {
+    align-items: stretch;
+  }
+
   .content {
     padding: 20px 15px;
+  }
+
+  .grid {
+    min-width: 0;
+  }
+
+  .monthContent {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .workoutsGrid {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .leftColumn {

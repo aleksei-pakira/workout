@@ -51,6 +51,39 @@
   margin: 0;
 }
 
+.pageVariant {
+}
+
+.inlineVariant {
+}
+
+.inlineMeta {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.inlineTitle {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.2;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.inlineDate {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.2;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  margin-left: 10px;
+}
+
 .editBtn {
   /* Используем готовый класс из utils */
   composes: btnWarning from '../styles/utils.module.css';
@@ -141,6 +174,11 @@
   border-radius: 0 0 10px 10px;
 }
 
+.inlineVariant .exerciseCard::before {
+  top: 32px;
+  z-index: 1;
+}
+
 .exerciseCard:hover {
   box-shadow: var(--shadow-md);
   border-color: #d7dde7;
@@ -192,6 +230,208 @@
   border-radius: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
+}
+
+.inlineVariant .tableContainer {
+  margin: 10px 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.inlineVariant .table {
+  min-width: 0;
+}
+
+.inlineVariant .exerciseHeader {
+  margin-bottom: 10px;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+}
+
+.removeExerciseBtn {
+  composes: btnDanger from '../styles/utils.module.css';
+}
+
+.inlineVariant .removeExerciseBtn {
+  margin-left: auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.removeExerciseBtnTop {
+  /* styles set via pill classes below */
+}
+
+.inlineVariant .removeExerciseBtnTop {
+  position: absolute;
+  top: 0;
+  right: 14px;
+  z-index: 2;
+}
+
+.pillBtn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.pillBtnAccent {
+  border: 1px solid rgba(206, 17, 38, 0.25);
+  background: rgba(206, 17, 38, 0.08);
+  color: var(--primary);
+}
+
+.pillBtnAccent:hover:not(:disabled) {
+  background: rgba(206, 17, 38, 0.12);
+  border-color: rgba(206, 17, 38, 0.35);
+  transform: translateY(-1px);
+}
+
+.addExerciseBtnTop {
+  composes: pillBtn pillBtnAccent;
+}
+
+.addSetBtnTop {
+  composes: pillBtn pillBtnAccent;
+}
+
+.addExerciseBtnBottom {
+  composes: pillBtn pillBtnAccent;
+}
+
+.addSetBtnBottom {
+  composes: pillBtn pillBtnAccent;
+}
+
+.removeExerciseBtnTop {
+  composes: pillBtn pillBtnAccent;
+}
+
+.inlineVariant .exerciseBottomActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.inlineVariant .addExercisePanel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.addExerciseSelect {
+  composes: formInput from '../styles/utils.module.css';
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+.addExerciseConfirmBtn {
+  composes: btnPrimary from '../styles/utils.module.css';
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-weight: 900;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.inlineVariant .exerciseNumber {
+  font-size: 12px;
+  min-width: auto;
+  flex: 0 0 auto;
+}
+
+.inlineVariant .exerciseName {
+  font-size: 12px;
+  white-space: normal;
+  overflow: hidden;
+  min-width: 0;
+  flex: 1 1 auto;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.inlineVariant .muscleGroup {
+  font-size: 12px;
+  padding: 3px 6px;
+}
+
+.inlineVariant .exerciseCard {
+  padding: 0;
+  padding-top: 40px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.inlineVariant .exerciseCard:hover {
+  box-shadow: none;
+  border-color: transparent;
+  transform: none;
+}
+
+.inlineVariant .table th {
+  background: transparent;
+  border-bottom: none;
+  padding: 8px 6px;
+}
+
+.inlineVariant .table td {
+  border-bottom: none;
+  padding: 6px 6px;
+}
+
+.inlineVariant .table tr:hover td {
+  background: transparent;
+}
+
+.inlineVariant .inputSmall {
+  width: 88px;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 16px;
+  line-height: 28px;
+}
+
+.inlineVariant .selectSmall {
+  width: 100%;
+  min-width: 110px;
+  height: 28px;
+  padding: 0 8px;
+  font-size: 16px;
+  line-height: 28px;
+}
+
+.inlineVariant .table td:last-child {
+  text-align: right;
+  padding-right: 0;
+}
+
+.inlineVariant .deleteBtn {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .table {
@@ -322,9 +562,23 @@
     align-items: flex-start;
   }
 
+  /* Inline: на узком экране переносим строку — иначе nowrap + чип + кнопки дают горизонтальный скролл страницы */
+  .inlineVariant .exerciseHeader {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  /* Inline meta: title слева, дата справа (дата не переносится) */
+  .inlineMeta {
+    align-items: baseline;
+  }
+
   /* На телефоне таблица должна помещаться без горизонтального скролла */
   .tableContainer {
-    overflow-x: hidden;
+    min-width: 0;
+    width: 100%;
   }
 
   .table {
@@ -377,5 +631,54 @@
 
   .table td {
     padding: 8px 6px;
+  }
+
+  /* Inline: убираем типичный источник overflow (min-width у контролов + flex/grid без min-width:0) */
+  .inlineVariant .table th,
+  .inlineVariant .table td {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .inlineVariant .selectSmall {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .inlineVariant .inputSmall {
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .inlineVariant .exerciseBottomActions {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .inlineVariant .exerciseBottomActions > button {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .inlineVariant .addExercisePanel {
+    grid-template-columns: 1fr;
+  }
+
+  .inlineVariant .addExerciseConfirmBtn {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .inlineVariant {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .inlineVariant .tableContainer {
+    max-width: 100%;
   }
 }

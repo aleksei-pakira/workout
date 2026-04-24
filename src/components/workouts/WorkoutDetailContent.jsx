@@ -1,15 +1,20 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import pb from '../../lib/pocketbase';
 import styles from '../../pages/WorkoutDetailPage.module.css';
 
-function WorkoutDetailContent({ workoutId }) {
-  const navigate = useNavigate();
+function WorkoutDetailContent({ workoutId, variant = 'page', showMeta = true }) {
+  const isInline = variant === 'inline';
+  const user = pb.authStore.model;
   const [workout, setWorkout] = useState(null);
   const [exercises, setExercises] = useState([]);
   const [sets, setSets] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [myExerciseOptions, setMyExerciseOptions] = useState([]);
+  const [addOpenFor, setAddOpenFor] = useState(null);
+  const [addSelected, setAddSelected] = useState('');
+  const [addingExercise, setAddingExercise] = useState(false);
+  const [loadingMyExercises, setLoadingMyExercises] = useState(false);
 
   useEffect(() => {
     if (!workoutId) return;
@@ -62,6 +67,67 @@ function WorkoutDetailContent({ workoutId }) {
       isMounted = false;
     };
   }, [workoutId]);
+
+  useEffect(() => {
+    if (!isInline) return;
+    if (!user?.id) return;
+    let isMounted = true;
+
+    const loadMyExercises = async () => {
+      try {
+        setLoadingMyExercises(true);
+
+        const [created, links] = await Promise.all([
+          pb.collection('user_exercises').getFullList({
+            filter: `created_by = "${user.id}"`,
+            sort: 'exercise_name',
+            requestKey: null,
+          }),
+          pb.collection('user_exercise_library').getFullList({
+            filter: `user = "${user.id}"`,
+            expand: 'exercise',
+            requestKey: null,
+          }),
+        ]);
+
+        const options = [];
+
+        for (const item of links) {
+          const ex = item.expand?.exercise;
+          if (!ex) continue;
+          options.push({
+            key: `public:${ex.id}`,
+            label: ex.exercise_name,
+            exerciseId: ex.id,
+            type: 'public',
+          });
+        }
+
+        for (const ex of created) {
+          options.push({
+            key: `custom:${ex.id}`,
+            label: ex.exercise_name,
+            customName: ex.exercise_name,
+            type: 'custom',
+          });
+        }
+
+        options.sort((a, b) => a.label.localeCompare(b.label, 'ru-RU'));
+
+        if (isMounted) setMyExerciseOptions(options);
+      } catch (e) {
+        console.error('Ошибка загрузки упражнений:', e);
+      } finally {
+        if (isMounted) setLoadingMyExercises(false);
+      }
+    };
+
+    loadMyExercises();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isInline, user?.id]);
 
   const addSet = async (workoutExerciseId) => {
     try {
@@ -122,26 +188,107 @@ function WorkoutDetailContent({ workoutId }) {
     }
   };
 
+  const deleteWorkoutExercise = async (workoutExerciseId) => {
+    if (!confirm('Удалить упражнение из тренировки?')) return;
+    try {
+      const currentSets = sets[workoutExerciseId] || [];
+      for (const s of currentSets) {
+        try {
+          await pb.collection('sets').delete(s.id, { requestKey: null });
+        } catch {
+          // ignore
+        }
+      }
+
+      await pb.collection('workout_exercises').delete(workoutExerciseId, { requestKey: null });
+
+      setExercises((prev) => prev.filter((x) => x.id !== workoutExerciseId));
+      setSets((prev) => {
+        const copy = { ...prev };
+        delete copy[workoutExerciseId];
+        return copy;
+      });
+    } catch (e) {
+      console.error('Ошибка удаления упражнения:', e);
+      alert('Не удалось удалить упражнение');
+    }
+  };
+
+  const addExerciseToWorkout = async () => {
+    if (!addSelected) return;
+    const picked = myExerciseOptions.find((o) => o.key === addSelected);
+    if (!picked) return;
+
+    try {
+      setAddingExercise(true);
+      const nextOrder = exercises.reduce((m, e) => Math.max(m, e.order_index ?? 0), 0) + 1;
+
+      const payload = {
+        workout: workoutId,
+        order_index: nextOrder,
+      };
+
+      if (picked.type === 'public') payload.exercise = picked.exerciseId;
+      if (picked.type === 'custom') payload.custom_name = picked.customName || picked.label;
+
+      const created = await pb.collection('workout_exercises').create(payload, {
+        requestKey: null,
+      });
+
+      const fresh = await pb.collection('workout_exercises').getOne(created.id, {
+        expand: 'exercise',
+        requestKey: null,
+      });
+
+      setExercises((prev) => [...prev, fresh].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)));
+      setSets((prev) => ({ ...prev, [fresh.id]: [] }));
+
+      setAddSelected('');
+      setAddOpenFor(null);
+    } catch (e) {
+      console.error('Ошибка добавления упражнения:', e);
+      alert('Не удалось добавить упражнение');
+    } finally {
+      setAddingExercise(false);
+    }
+  };
+
+  const canShowInlineExerciseActions = isInline;
+
+  const addOptions = useMemo(() => {
+    return myExerciseOptions.map((o) => (
+      <option key={o.key} value={o.key}>
+        {o.label}
+      </option>
+    ));
+  }, [myExerciseOptions]);
+
   if (loading) return <div className={styles.loadingContainer}>Загрузка...</div>;
   if (error) return <div className={styles.errorContainer}>{error}</div>;
   if (!workout) return <div className={styles.notFoundContainer}>Тренировка не найдена</div>;
 
   return (
-    <>
-      <div className={styles.header}>
-        <h1 className={styles.title}>{workout.title || 'Тренировка'}</h1>
-        <button
-          type="button"
-          onClick={() => navigate(`/workouts/${workoutId}/edit`)}
-          className={styles.editBtn}
-        >
-          ✏️ Редактировать
-        </button>
-      </div>
+    <div className={isInline ? styles.inlineVariant : styles.pageVariant}>
+      {isInline ? (
+        showMeta ? (
+        <div className={styles.inlineMeta}>
+          <div className={styles.inlineTitle}>{workout.title || 'Тренировка'}</div>
+          <div className={styles.inlineDate}>
+            {new Date(workout.date).toLocaleDateString('ru-RU')}
+          </div>
+        </div>
+        ) : null
+      ) : (
+        <>
+          <div className={styles.header}>
+            <h1 className={styles.title}>{workout.title || 'Тренировка'}</h1>
+          </div>
 
-      <div className={styles.date}>
-        📅 {new Date(workout.date).toLocaleDateString('ru-RU')}
-      </div>
+          <div className={styles.date}>
+            📅 {new Date(workout.date).toLocaleDateString('ru-RU')}
+          </div>
+        </>
+      )}
 
       {workout.notes && (
         <div className={styles.notes}>
@@ -149,7 +296,7 @@ function WorkoutDetailContent({ workoutId }) {
         </div>
       )}
 
-      <h2 className={styles.sectionTitle}>Упражнения и подходы</h2>
+      {!isInline && <h2 className={styles.sectionTitle}>Упражнения и подходы</h2>}
 
       {exercises.length === 0 ? (
         <div className={styles.emptyMessage}>В этой тренировке пока нет упражнений</div>
@@ -162,6 +309,15 @@ function WorkoutDetailContent({ workoutId }) {
 
             return (
               <div key={we.id} className={styles.exerciseCard}>
+                {canShowInlineExerciseActions && (
+                  <button
+                    type="button"
+                    className={styles.removeExerciseBtnTop}
+                    onClick={() => deleteWorkoutExercise(we.id)}
+                  >
+                    Удалить упражнение
+                  </button>
+                )}
                 <div className={styles.exerciseHeader}>
                   <span className={styles.exerciseNumber}>{index + 1}.</span>
                   <h3 className={styles.exerciseName}>{exerciseName}</h3>
@@ -250,15 +406,66 @@ function WorkoutDetailContent({ workoutId }) {
                   <div className={styles.emptyMessage}>Пока нет подходов</div>
                 )}
 
-                <button type="button" onClick={() => addSet(we.id)} className={styles.addSetBtn}>
-                  + Добавить подход
-                </button>
+                {canShowInlineExerciseActions && (
+                  <div className={styles.exerciseBottomActions}>
+                    <button
+                      type="button"
+                      onClick={() => addSet(we.id)}
+                      className={styles.addSetBtnBottom}
+                    >
+                      + Добавить подход
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddOpenFor((prev) => (prev === we.id ? null : we.id));
+                        setAddSelected("");
+                      }}
+                      className={styles.addExerciseBtnBottom}
+                    >
+                      Добавить упражнение
+                    </button>
+                  </div>
+                )}
+
+
+                {canShowInlineExerciseActions && addOpenFor === we.id && (
+                  <div className={styles.addExercisePanel}>
+                    <select
+                      value={addSelected}
+                      onChange={(e) => setAddSelected(e.target.value)}
+                      className={styles.addExerciseSelect}
+                    >
+                      <option value="">
+                        {loadingMyExercises ? "Загрузка…" : "Выберите упражнение…"}
+                      </option>
+                      {addOptions}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={addExerciseToWorkout}
+                      className={styles.addExerciseConfirmBtn}
+                      disabled={addingExercise || !addSelected}
+                    >
+                      {addingExercise ? "Добавление…" : "Добавить"}
+                    </button>
+                  </div>
+                )}
+
+                {!isInline && (
+                  <button type="button" onClick={() => addSet(we.id)} className={styles.addSetBtn}>
+                    + Добавить подход
+                  </button>
+                )}
+
               </div>
             );
           })}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
