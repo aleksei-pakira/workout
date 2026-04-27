@@ -2,13 +2,14 @@
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 0 14px 14px;
+  padding: 0 14px 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 6px;
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
 }
 
 .header {
@@ -63,9 +64,10 @@
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   grid-template-rows: repeat(6, 1fr);
   gap: 1px;
+  height: 100%;
 }
 
 .cell {
@@ -77,6 +79,10 @@
   min-height: 54px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  contain: layout paint;
 }
 
 .cellOutMonth {
@@ -98,5 +104,50 @@
   font-size: 13px;
   font-weight: 900;
   color: inherit;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.exerciseMiniList {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.exerciseMiniItem {
+  font-size: 11px;
+  line-height: 12px;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.exerciseMiniMore {
+  font-size: 10px;
+  line-height: 11px;
+  color: var(--muted-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .cell {
+    padding: 6px;
+  }
+
+  .exerciseMiniList {
+    margin-top: 4px;
+  }
 }
 
