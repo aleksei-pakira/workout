@@ -31,24 +31,75 @@
 .date {
   font-weight: 900;
   color: var(--text, #111);
+  flex: 1 1 50%;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.closeBtn {
-  padding: 10px 14px;
-  background: var(--primary);
-  color: #fff;
+.headerRight {
+  flex: 0 0 50%;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn {
+  border-radius: 4px;
+  padding: 4px 8px;
+  min-height: 44px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btnPrimary {
+  composes: btn;
   border: none;
-  border-radius: 999px;
-  cursor: pointer;
+  background: var(--primary, #ce1126);
+  color: #fff;
   font-weight: 900;
+  cursor: pointer;
+}
+
+.btnPrimary:hover {
+  background: var(--primary-hover, #b30e21);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btnOutline {
+  composes: btn;
+  background: transparent;
+  color: var(--primary, #ce1126);
+  border: 1px solid rgba(206, 17, 38, 0.3);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.btnOutline:hover:not(:disabled) {
+  background: rgba(206, 17, 38, 0.06);
+}
+
+.btnOutline:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.closeBtn {
+  composes: btnPrimary;
 }
 
 .closeBtn:hover {
-  background: var(--primary-hover);
+  background: var(--primary-hover, #b30e21);
 }
 
 .body {
@@ -223,18 +274,14 @@
   bottom: 0;
   padding: 10px 0 0;
   background: var(--surface, #fff);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: stretch;
 }
 
 .saveBtn {
-  width: 100%;
-  min-height: 44px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: none;
-  background: var(--primary, #ce1126);
-  color: #fff;
-  font-weight: 900;
-  cursor: pointer;
+  composes: btnPrimary;
 }
 
 .saveBtn:disabled {
@@ -370,6 +417,12 @@
   border-bottom: 1px solid var(--border, #e2e8f0);
 }
 
+.setRowCreate {
+  composes: setRow;
+  position: relative;
+  padding-right: 38px;
+}
+
 .setRow:last-child {
   border-bottom: 0;
 }
@@ -396,6 +449,29 @@
   color: var(--text, #111);
 }
 
+.removeSetBtn {
+  composes: btnOutline;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  width: auto;
+  min-height: 0;
+}
+
+.removeSetBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.removeSetBtn:hover:not(:disabled) {
+  background: var(--surface-muted, #f8fafc);
+  color: var(--text, #111);
+}
+
 .addSetBtn {
   width: 100%;
   display: flex;
@@ -414,6 +490,15 @@
 
 .addSetBtn:hover {
   background: transparent;
+}
+
+.addExerciseBtn {
+  composes: btnOutline;
+  text-align: left;
+}
+
+.addExerciseBtn:hover {
+  background: rgba(206, 17, 38, 0.06);
 }
 
 .statusSelect {

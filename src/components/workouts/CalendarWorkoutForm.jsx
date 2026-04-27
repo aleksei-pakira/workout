@@ -30,17 +30,19 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   const [creating, setCreating] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
-  const [draftSets, setDraftSets] = useState(() => [
-    { set_number: 1, weight: '', reps: '', status: 'planned' },
+  const [draftExercises, setDraftExercises] = useState(() => [
+    {
+      exerciseId: '',
+      exerciseName: '',
+      sets: [{ set_number: 1, weight: '', reps: '', status: 'planned' }],
+    },
   ]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const [exerciseDropdownOpen, setExerciseDropdownOpen] = useState(false);
+  const [openExerciseDropdownIdx, setOpenExerciseDropdownIdx] = useState(null);
   const [exercisesLoading, setExercisesLoading] = useState(false);
   const [exercisesError, setExercisesError] = useState(null);
   const [exercises, setExercises] = useState([]);
-  const [selectedExerciseId, setSelectedExerciseId] = useState('');
-  const [selectedExerciseName, setSelectedExerciseName] = useState('');
 
   const loadExercises = async () => {
     if (exercisesLoading) return;
@@ -62,18 +64,59 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
     }
   };
 
-  const canSave = useMemo(() => Boolean(selectedExerciseId), [selectedExerciseId]);
+  const canSave = useMemo(
+    () => draftExercises.length > 0 && draftExercises.every((x) => Boolean(x.exerciseId)),
+    [draftExercises]
+  );
 
-  const updateDraftSet = (idx, field, value) => {
-    setDraftSets((prev) =>
-      prev.map((s, i) => (i === idx ? { ...s, [field]: value } : s))
-    );
+  const updateDraftExercise = (idx, patch) => {
+    setDraftExercises((prev) => prev.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
+  };
+
+  const updateDraftSet = (exerciseIdx, setIdx, field, value) => {
+    setDraftExercises((prev) => {
+      const ex = prev[exerciseIdx];
+      if (!ex) return prev;
+      const nextSets = (ex.sets || []).map((s, i) => (i === setIdx ? { ...s, [field]: value } : s));
+      return prev.map((x, i) => (i === exerciseIdx ? { ...x, sets: nextSets } : x));
+    });
+  };
+
+  const removeDraftSet = (exerciseIdx, setIdx) => {
+    setDraftExercises((prev) => {
+      const ex = prev[exerciseIdx];
+      if (!ex) return prev;
+      const sets = ex.sets || [];
+      if (sets.length <= 1) return prev;
+      const next = sets.filter((_, i) => i !== setIdx).map((s, i) => ({ ...s, set_number: i + 1 }));
+      return prev.map((x, i) => (i === exerciseIdx ? { ...x, sets: next } : x));
+    });
+  };
+
+  const addDraftSet = (exerciseIdx) => {
+    setDraftExercises((prev) => {
+      const ex = prev[exerciseIdx];
+      if (!ex) return prev;
+      const sets = ex.sets || [];
+      const nextSets = [
+        ...sets,
+        { set_number: sets.length + 1, weight: '', reps: '', status: 'planned' },
+      ];
+      return prev.map((x, i) => (i === exerciseIdx ? { ...x, sets: nextSets } : x));
+    });
+  };
+
+  const toggleExerciseDropdown = async (exerciseIdx) => {
+    const nextIdx = openExerciseDropdownIdx === exerciseIdx ? null : exerciseIdx;
+    setOpenExerciseDropdownIdx(nextIdx);
+    if (nextIdx !== null) await loadExercises();
   };
 
   const handleSave = async () => {
     if (!user?.id) return;
     if (!dayKey) return;
-    if (!selectedExerciseId) return;
+    if (!draftExercises.length) return;
+    if (!draftExercises.every((x) => x.exerciseId)) return;
 
     const nextDayKey = getNextDayKey(dayKey);
     if (!nextDayKey) return;
@@ -94,6 +137,9 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
         return;
       }
 
+      const firstExercise = draftExercises[0];
+      if (!firstExercise?.exerciseId) return;
+
       const workout = await pb.collection('workouts').create(
         {
           user: user.id,
@@ -107,24 +153,25 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
       const we = await pb.collection('workout_exercises').create(
         {
           workout: workout.id,
-          exercise: selectedExerciseId,
+          exercise: firstExercise.exerciseId,
           order_index: 1,
         },
         { requestKey: null }
       );
 
       await Promise.all(
-        (draftSets.length ? draftSets : [{ weight: '', reps: '', status: 'planned' }]).map((s, i) =>
-          pb.collection('sets').create(
-            {
-              workout_exercise: we.id,
-              set_number: i + 1,
-              weight: Number(s.weight) || 0,
-              reps: Number(s.reps) || 0,
-              status: s.status || 'planned',
-            },
-            { requestKey: null }
-          )
+        ((firstExercise.sets && firstExercise.sets.length) ? firstExercise.sets : [{ weight: '', reps: '', status: 'planned' }]).map(
+          (s, i) =>
+            pb.collection('sets').create(
+              {
+                workout_exercise: we.id,
+                set_number: i + 1,
+                weight: Number(s.weight) || 0,
+                reps: Number(s.reps) || 0,
+                status: s.status || 'planned',
+              },
+              { requestKey: null }
+            )
         )
       );
 
@@ -135,7 +182,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
       });
 
       setDayWorkouts(list);
-      setExerciseDropdownOpen(false);
+      setOpenExerciseDropdownIdx(null);
       onSaved?.();
       onClose?.();
     } catch (e) {
@@ -325,9 +372,11 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
       <div className={styles.sheet}>
         <div className={styles.header}>
           <div className={styles.date}>{dayKey}</div>
-          <button type="button" className={styles.closeBtn} onClick={onClose}>
-            Закрыть
-          </button>
+          <div className={styles.headerRight}>
+            <button type="button" className={styles.closeBtn} onClick={onClose}>
+              Закрыть
+            </button>
+          </div>
         </div>
 
         <div className={styles.body}>
@@ -351,106 +400,123 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                 placeholder="Workout notes (optional)"
               />
 
-              <div className={styles.exerciseBlock}>
-                <div className={styles.exerciseRow}>
-                  <div className={styles.exerciseIndex}>1</div>
-                  <button
-                    type="button"
-                    className={styles.exerciseNameBtn}
-                    onClick={async () => {
-                      const next = !exerciseDropdownOpen;
-                      setExerciseDropdownOpen(next);
-                      if (next) await loadExercises();
-                    }}
-                    title={selectedExerciseName}
-                  >
-                    {selectedExerciseName || 'Exercise'}
-                  </button>
-                </div>
-
-                {exerciseDropdownOpen && (
-                  <div className={styles.exerciseDropdown}>
-                    {exercisesLoading ? (
-                      <div className={styles.dropdownMsg}>Загрузка…</div>
-                    ) : exercisesError ? (
-                      <div className={styles.dropdownError}>{exercisesError}</div>
-                    ) : exercises.length === 0 ? (
-                      <div className={styles.dropdownMsg}>Нет упражнений</div>
-                    ) : (
-                      <div className={styles.dropdownList}>
-                        {exercises.map((ex) => (
-                          <button
-                            key={ex.id}
-                            type="button"
-                            className={styles.dropdownItem}
-                            onClick={() => {
-                              setSelectedExerciseId(ex.id);
-                              setSelectedExerciseName(ex.exercise_name || '');
-                              setExerciseDropdownOpen(false);
-                            }}
-                          >
-                            {ex.exercise_name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className={styles.setsTable}>
-                  <div className={styles.setsHeader}>
-                    <div className={styles.hCell}>weight</div>
-                    <div className={styles.hCell}>reps</div>
-                    <div className={styles.hCell}>status</div>
+              {draftExercises.map((exBlock, exIdx) => (
+                <div key={exIdx} className={styles.exerciseBlock}>
+                  <div className={styles.exerciseRow}>
+                    <div className={styles.exerciseIndex}>{exIdx + 1}</div>
+                    <button
+                      type="button"
+                      className={styles.exerciseNameBtn}
+                      onClick={() => toggleExerciseDropdown(exIdx)}
+                      title={exBlock.exerciseName}
+                    >
+                      {exBlock.exerciseName || 'Exercise'}
+                    </button>
                   </div>
 
-                  {draftSets.map((s, idx) => (
-                    <div key={s.set_number} className={styles.setRow}>
-                      <div className={styles.cell}>
-                        <input
-                          type="number"
-                          className={styles.cellInput}
-                          value={s.weight}
-                          onChange={(e) => updateDraftSet(idx, 'weight', e.target.value)}
-                          placeholder="0"
-                          inputMode="decimal"
-                        />
-                      </div>
-                      <div className={styles.cell}>
-                        <input
-                          type="number"
-                          className={styles.cellInput}
-                          value={s.reps}
-                          onChange={(e) => updateDraftSet(idx, 'reps', e.target.value)}
-                          placeholder="0"
-                          inputMode="numeric"
-                        />
-                      </div>
-                      <div className={styles.cell}>{s.status}</div>
+                  {openExerciseDropdownIdx === exIdx && (
+                    <div className={styles.exerciseDropdown}>
+                      {exercisesLoading ? (
+                        <div className={styles.dropdownMsg}>Загрузка…</div>
+                      ) : exercisesError ? (
+                        <div className={styles.dropdownError}>{exercisesError}</div>
+                      ) : exercises.length === 0 ? (
+                        <div className={styles.dropdownMsg}>Нет упражнений</div>
+                      ) : (
+                        <div className={styles.dropdownList}>
+                          {exercises.map((ex) => (
+                            <button
+                              key={ex.id}
+                              type="button"
+                              className={styles.dropdownItem}
+                              onClick={() => {
+                                updateDraftExercise(exIdx, {
+                                  exerciseId: ex.id,
+                                  exerciseName: ex.exercise_name || '',
+                                });
+                                setOpenExerciseDropdownIdx(null);
+                              }}
+                            >
+                              {ex.exercise_name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  )}
 
-                  <button
-                    type="button"
-                    className={styles.addSetBtn}
-                    onClick={() =>
-                      setDraftSets((prev) => [
-                        ...prev,
-                        {
-                          set_number: prev.length + 1,
-                          weight: '',
-                          reps: '',
-                          status: 'planned',
-                        },
-                      ])
-                    }
-                  >
-                    + Добавить подход
-                  </button>
+                  <div className={styles.setsTable}>
+                    <div className={styles.setsHeader}>
+                      <div className={styles.hCell}>weight</div>
+                      <div className={styles.hCell}>reps</div>
+                      <div className={styles.hCell}>status</div>
+                    </div>
+
+                    {(exBlock.sets || []).map((s, setIdx) => (
+                      <div key={s.set_number} className={styles.setRowCreate}>
+                        <div className={styles.cell}>
+                          <input
+                            type="number"
+                            className={styles.cellInput}
+                            value={s.weight}
+                            onChange={(e) => updateDraftSet(exIdx, setIdx, 'weight', e.target.value)}
+                            placeholder="0"
+                            inputMode="decimal"
+                          />
+                        </div>
+                        <div className={styles.cell}>
+                          <input
+                            type="number"
+                            className={styles.cellInput}
+                            value={s.reps}
+                            onChange={(e) => updateDraftSet(exIdx, setIdx, 'reps', e.target.value)}
+                            placeholder="0"
+                            inputMode="numeric"
+                          />
+                        </div>
+                        <div className={styles.cell}>{s.status}</div>
+                        <button
+                          type="button"
+                          className={styles.removeSetBtn}
+                          onClick={() => removeDraftSet(exIdx, setIdx)}
+                          aria-label="Remove set"
+                          disabled={(exBlock.sets || []).length <= 1}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      className={styles.addSetBtn}
+                      onClick={() => addDraftSet(exIdx)}
+                    >
+                      + Добавить подход
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ))}
 
               <div className={styles.createFooter}>
+                <button
+                  type="button"
+                  className={styles.addExerciseBtn}
+                  onClick={() => {
+                    setDraftExercises((prev) => [
+                      ...prev,
+                      {
+                        exerciseId: '',
+                        exerciseName: '',
+                        sets: [{ set_number: 1, weight: '', reps: '', status: 'planned' }],
+                      },
+                    ]);
+                    setOpenExerciseDropdownIdx(null);
+                  }}
+                >
+                  + Добавить упражнение
+                </button>
+
                 <button
                   type="button"
                   className={styles.saveBtn}
@@ -459,8 +525,9 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                 >
                   {saving ? 'Сохраняем…' : 'Сохранить'}
                 </button>
-                {saveError ? <div className={styles.error}>{saveError}</div> : null}
               </div>
+
+              {saveError ? <div className={styles.error}>{saveError}</div> : null}
             </div>
           ) : (
             <div className={styles.workoutSummary}>
