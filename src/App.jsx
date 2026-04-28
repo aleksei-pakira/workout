@@ -7,7 +7,6 @@ import PrivateRoute from './components/layout/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage'; // Добавляем
 import HomePage from './pages/HomePage';
-import WorkoutsPage from './pages/WorkoutsPage';
 import ExercisesPage from './pages/ExercisesPage';
 import WorkoutDetailPage from './pages/WorkoutDetailPage';
 import WorkoutCreatePage from './pages/WorkoutCreatePage';
@@ -46,11 +45,7 @@ function App() {
           </PrivateRoute>
         } />
 
-        <Route path="/workouts" element={
-          <PrivateRoute>
-            <WorkoutsPage />
-          </PrivateRoute>
-        } />
+        <Route path="/workouts" element={<Navigate to="/workouts/calendar" replace />} />
 
         <Route path="/exercises" element={
           <PrivateRoute>

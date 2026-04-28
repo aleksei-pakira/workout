@@ -29,7 +29,7 @@ function Header() {
           </Link>
 
           <nav className={styles.nav}>
-            <Link to="/workouts" className={styles.navLink}>
+            <Link to="/workouts/calendar" className={styles.navLink}>
               Тренировки
             </Link>
             <Link to="/exercises" className={styles.navLink}>
