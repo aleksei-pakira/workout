@@ -8,10 +8,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage'; // Добавляем
 import HomePage from './pages/HomePage';
 import ExercisesPage from './pages/ExercisesPage';
-import WorkoutDetailPage from './pages/WorkoutDetailPage';
-import WorkoutCreatePage from './pages/WorkoutCreatePage';
 import WorkoutPlanPage from './pages/WorkoutPlanPage';
-import WorkoutEditPage from './pages/WorkoutEditPage';
 import WorkoutCalendarPage from './pages/WorkoutCalendarPage';
 import WorkoutCalendarEditPage from './pages/WorkoutCalendarEditPage';
 
@@ -57,12 +54,6 @@ function App() {
           <Navigate to="/exercises" replace state={{ tab: 'add' }} />
         } />
 
-        <Route path="/workouts/create" element={
-          <PrivateRoute>
-            <WorkoutCreatePage />
-          </PrivateRoute>
-        } />
-
         <Route path="/workouts/plan" element={
           <PrivateRoute>
             <WorkoutPlanPage />
@@ -78,18 +69,6 @@ function App() {
         <Route path="/workouts/:id/calendar-edit" element={
           <PrivateRoute>
             <WorkoutCalendarEditPage />
-          </PrivateRoute>
-        } />
-
-        <Route path="/workouts/:id" element={
-          <PrivateRoute>
-            <WorkoutDetailPage />
-          </PrivateRoute>
-        } />
-
-        <Route path="/workouts/:id/edit" element={
-          <PrivateRoute>
-            <WorkoutEditPage />
           </PrivateRoute>
         } />
 
