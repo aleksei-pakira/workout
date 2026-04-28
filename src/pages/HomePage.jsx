@@ -1,12 +1,10 @@
 // src/pages/HomePage.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
 import styles from './HomePage.module.css';
 
 function HomePage() {
-  const navigate = useNavigate();
   const user = pb.authStore.model;
   const [stats, setStats] = useState({
     totalWorkouts: 0,
@@ -14,7 +12,6 @@ function HomePage() {
     bestWeight: 0,
     favoriteExercise: '—'
   });
-  const [recentWorkouts, setRecentWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [avatar, setAvatar] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -101,8 +98,6 @@ function HomePage() {
         bestWeight,
         favoriteExercise
       });
-
-      setRecentWorkouts(workouts);
 
     } catch (error) {
       console.error('Ошибка загрузки данных:', error);
@@ -237,16 +232,6 @@ function HomePage() {
                   <div className={styles.statLabelCompact}>любимое</div>
                 </div>
               </div>
-
-              {/* Быстрые действия */}
-              <div className={styles.quickActionsCompact}>
-                <button
-                  onClick={() => navigate('/workouts/create')}
-                  className={styles.quickActionBtnPrimaryCompact}
-                >
-                  Создать тренировку
-                </button>
-              </div>
             </div>
 
             {/* Мотивационная цитата внизу */}
@@ -254,56 +239,6 @@ function HomePage() {
               <p className={styles.quoteTextCompact}>"{todayQuote.text}"</p>
               <p className={styles.quoteAuthorCompact}>— {todayQuote.author}</p>
             </div>
-          </div>
-
-          {/* Правая колонка - тренировки */}
-          <div className={styles.rightColumn}>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>📁 Последние тренировки</h2>
-            </div>
-
-            {recentWorkouts.length > 0 ? (
-              <div className={styles.workoutsGrid}>
-                {recentWorkouts.map((workout, index) => (
-                  <div
-                    key={workout.id}
-                    className={`${styles.workoutFolder} ${getFolderColor(index)}`}
-                    onClick={() => navigate(`/workouts/${workout.id}`)}
-                  >
-                    <div className={styles.folderIcon}>📁</div>
-                    <h3 className={styles.folderTitle}>
-                      {workout.title || 'Тренировка'}
-                    </h3>
-                    <div className={styles.folderDate}>
-                      📅 {new Date(workout.date).toLocaleDateString('ru-RU')}
-                    </div>
-                    <div className={styles.folderStats}>
-                      <span className={styles.folderStat}>
-                        {workout.exercises_count || 0}
-                      </span>
-                      <span className={styles.folderStat}>
-                        <span className={styles.folderStatIcon}>⚡</span>
-                        {workout.total_sets || 0}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className={styles.emptyFolder}>
-                <div className={styles.emptyIcon}>📁</div>
-                <h3 className={styles.emptyTitle}>Нет тренировок</h3>
-                <p className={styles.emptyText}>
-                  Создайте свою первую тренировку, чтобы начать отслеживать прогресс
-                </p>
-                <button
-                  onClick={() => navigate('/workouts/create')}
-                  className={styles.emptyBtn}
-                >
-                  ➕ Создать тренировку
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
