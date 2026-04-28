@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
 import MonthCalendar from '../components/workouts/MonthCalendar';
@@ -79,11 +80,18 @@ function WorkoutCalendarPage() {
   const [selectedMonthKey, setSelectedMonthKey] = useState(() => toMonthKey(new Date()));
   const [activeDayKey, setActiveDayKey] = useState(null);
   const [calendarReloadKey, setCalendarReloadKey] = useState(0);
+  const [searchParams] = useSearchParams();
+  const r = searchParams.get('r');
 
   const grid = useMemo(() => buildMonthGrid(selectedMonthKey), [selectedMonthKey]);
 
   const user = pb.authStore.model;
   const [exerciseNamesByDay, setExerciseNamesByDay] = useState({});
+
+  useEffect(() => {
+    if (!r) return;
+    setCalendarReloadKey((x) => x + 1);
+  }, [r]);
 
   useEffect(() => {
     let mounted = true;

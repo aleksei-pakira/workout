@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import pb from '../../lib/pocketbase';
 import styles from './CalendarWorkoutForm.module.css';
 
@@ -23,6 +24,7 @@ function getNextDayKey(dayKey) {
 
 function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   const user = pb.authStore.model;
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,6 +95,20 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
     });
   };
 
+  const removeDraftExercise = (exerciseIdx) => {
+    setDraftExercises((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((_, i) => i !== exerciseIdx);
+    });
+
+    setOpenExerciseDropdownIdx((prev) => {
+      if (prev === null) return null;
+      if (prev === exerciseIdx) return null;
+      if (prev > exerciseIdx) return prev - 1;
+      return prev;
+    });
+  };
+
   const addDraftSet = (exerciseIdx) => {
     setDraftExercises((prev) => {
       const ex = prev[exerciseIdx];
@@ -137,9 +153,6 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
         return;
       }
 
-      const firstExercise = draftExercises[0];
-      if (!firstExercise?.exerciseId) return;
-
       const workout = await pb.collection('workouts').create(
         {
           user: user.id,
@@ -150,29 +163,35 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
         { requestKey: null }
       );
 
-      const we = await pb.collection('workout_exercises').create(
-        {
-          workout: workout.id,
-          exercise: firstExercise.exerciseId,
-          order_index: 1,
-        },
-        { requestKey: null }
-      );
-
       await Promise.all(
-        ((firstExercise.sets && firstExercise.sets.length) ? firstExercise.sets : [{ weight: '', reps: '', status: 'planned' }]).map(
-          (s, i) =>
-            pb.collection('sets').create(
-              {
-                workout_exercise: we.id,
-                set_number: i + 1,
-                weight: Number(s.weight) || 0,
-                reps: Number(s.reps) || 0,
-                status: s.status || 'planned',
-              },
-              { requestKey: null }
+        draftExercises.map(async (ex, exIdx) => {
+          const we = await pb.collection('workout_exercises').create(
+            {
+              workout: workout.id,
+              exercise: ex.exerciseId,
+              order_index: exIdx + 1,
+            },
+            { requestKey: null }
+          );
+
+          const setsToCreate =
+            ex.sets && ex.sets.length ? ex.sets : [{ weight: '', reps: '', status: 'planned' }];
+
+          await Promise.all(
+            setsToCreate.map((s, i) =>
+              pb.collection('sets').create(
+                {
+                  workout_exercise: we.id,
+                  set_number: i + 1,
+                  weight: Number(s.weight) || 0,
+                  reps: Number(s.reps) || 0,
+                  status: s.status || 'planned',
+                },
+                { requestKey: null }
+              )
             )
-        )
+          );
+        })
       );
 
       const list = await pb.collection('workouts').getFullList({
@@ -412,6 +431,15 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                     >
                       {exBlock.exerciseName || 'Exercise'}
                     </button>
+                    <button
+                      type="button"
+                      className={styles.removeExerciseBtn}
+                      onClick={() => removeDraftExercise(exIdx)}
+                      disabled={exIdx === 0 || draftExercises.length <= 1}
+                      aria-label="Remove exercise"
+                    >
+                      ×
+                    </button>
                   </div>
 
                   {openExerciseDropdownIdx === exIdx && (
@@ -534,6 +562,16 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
               <div className={styles.workoutTitle}>{activeWorkout?.title || 'Тренировка'}</div>
               {activeWorkout?.notes ? (
                 <div className={styles.workoutNotes}>{activeWorkout.notes}</div>
+              ) : null}
+
+              {activeWorkout?.id ? (
+                <button
+                  type="button"
+                  className={styles.editBtn}
+                  onClick={() => navigate(`/workouts/${activeWorkout.id}/calendar-edit`)}
+                >
+                  Редактировать
+                </button>
               ) : null}
 
               {loadingWorkoutData ? (

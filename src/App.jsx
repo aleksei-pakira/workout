@@ -14,6 +14,7 @@ import WorkoutCreatePage from './pages/WorkoutCreatePage';
 import WorkoutPlanPage from './pages/WorkoutPlanPage';
 import WorkoutEditPage from './pages/WorkoutEditPage';
 import WorkoutCalendarPage from './pages/WorkoutCalendarPage';
+import WorkoutCalendarEditPage from './pages/WorkoutCalendarEditPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid);
@@ -76,6 +77,12 @@ function App() {
         <Route path="/workouts/calendar" element={
           <PrivateRoute>
             <WorkoutCalendarPage />
+          </PrivateRoute>
+        } />
+
+        <Route path="/workouts/:id/calendar-edit" element={
+          <PrivateRoute>
+            <WorkoutCalendarEditPage />
           </PrivateRoute>
         } />
 
