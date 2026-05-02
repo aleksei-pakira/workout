@@ -1,35 +1,33 @@
-// src/pages/LoginPage.jsx
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // 👈 ДОБАВЬТЕ Link сюда!
+import { Link, useNavigate } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import styles from './LoginPage.module.css';
 
 function LoginPage() {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleAdminLogin = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      await pb.admins.authWithPassword('admin@trainer.local', 'trainer.local');
-      navigate('/');
-    } catch (error) {
-      setError('Ошибка входа админа: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const handleUserLogin = async () => {
+    if (!email.trim() || !password) return;
+
     try {
       setLoading(true);
       setError('');
-      await pb.collection('users').authWithPassword('user@demo.com', 'trainer.local');
+      await pb.collection('users').authWithPassword(email.trim(), password, { requestKey: null });
       navigate('/');
-    } catch (error) {
-      setError('Ошибка входа пользователя: ' + error.message);
+    } catch (err) {
+      const status = err?.status;
+      const message = String(err?.message || '');
+      if (status === 403 && message.toLowerCase().includes('requirements to authenticate')) {
+        setError('Подтвердите email (письмо могло попасть в спам).');
+      } else {
+        setError('Неверный email или пароль.');
+      }
     } finally {
       setLoading(false);
     }
@@ -38,52 +36,52 @@ function LoginPage() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>
-          Вход в дневник
-        </h1>
+        <h1 className={styles.title}>Вход</h1>
 
-        {error && (
+        {error ? (
           <div className={styles.errorMessage}>
             <span className={styles.errorIcon}>⚠️</span>
             {error}
           </div>
-        )}
+        ) : null}
 
-        <div className={styles.buttonContainer}>
-          <button
-            onClick={handleAdminLogin}
-            disabled={loading}
-            className={styles.adminButton}
-          >
-            <span className={styles.buttonIcon}>🔑</span>
-            Войти как администратор
-            {loading && <span className={styles.loader}></span>}
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Email</label>
+            <input
+              className={styles.input}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              placeholder="you@email.com"
+              disabled={loading}
+              required
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Пароль</label>
+            <input
+              className={styles.input}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              disabled={loading}
+              required
+            />
+          </div>
+
+          <button type="submit" className={styles.userButton} disabled={loading}>
+            Войти
+            {loading ? <span className={styles.loader} /> : null}
           </button>
+        </form>
 
-          <button
-            onClick={handleUserLogin}
-            disabled={loading}
-            className={styles.userButton}
-          >
-            <span className={styles.buttonIcon}>👤</span>
-            Войти как пользователь
-            {loading && <span className={styles.loader}></span>}
-          </button>
-        </div>
-
-        {/* 👇 ССЫЛКА НА РЕГИСТРАЦИЮ - ПРАВИЛЬНОЕ МЕСТО 👇 */}
         <div className={styles.registerLink}>
           Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
-        </div>
-
-        <div className={styles.infoText}>
-          <div>Тестовые аккаунты:</div>
-          <div className={styles.demoCredentials}>
-            admin@trainer.local / trainer.local
-          </div>
-          <div className={styles.demoCredentials}>
-            user@demo.com / trainer.local
-          </div>
         </div>
       </div>
     </div>

@@ -1,13 +1,28 @@
-// src/pages/RegisterPage.jsx
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import styles from './RegisterPage.module.css';
+
+function pbErrorToFieldErrors(err) {
+  const out = {};
+  const data = err?.data?.data || err?.data || null;
+  if (data && typeof data === 'object') {
+    for (const [key, val] of Object.entries(data)) {
+      if (val && typeof val === 'object' && typeof val.message === 'string') {
+        out[key] = val.code === 'validation_not_unique' ? 'Email уже используется' : val.message;
+      }
+    }
+  }
+  return out;
+}
 
 function RegisterPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [mode, setMode] = useState('form'); // form | verify_sent
+  const [verifySending, setVerifySending] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -53,6 +68,22 @@ function RegisterPage() {
     }
   };
 
+  const emailTrimmed = useMemo(() => formData.email.trim(), [formData.email]);
+
+  const requestVerify = async () => {
+    if (!emailTrimmed) return;
+    try {
+      setVerifySending(true);
+      setVerifyError('');
+      await pb.collection('users').requestVerification(emailTrimmed, { requestKey: null });
+    } catch (err) {
+      console.error('Ошибка отправки письма подтверждения:', err);
+      setVerifyError('Не удалось отправить письмо. Попробуйте позже.');
+    } finally {
+      setVerifySending(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -65,29 +96,29 @@ function RegisterPage() {
 
     setLoading(true);
     setErrors({});
+    setVerifyError('');
 
     try {
       // Создаем пользователя в PocketBase
-      const user = await pb.collection('users').create({
-        email: formData.email,
+      await pb.collection('users').create({
+        email: emailTrimmed,
         password: formData.password,
         passwordConfirm: formData.passwordConfirm,
-        name: formData.name || formData.email.split('@')[0]
-      });
+        name: formData.name || emailTrimmed.split('@')[0]
+      }, { requestKey: null });
 
-      // Автоматически входим после регистрации
-      await pb.collection('users').authWithPassword(
-        formData.email,
-        formData.password
-      );
-
-      // Перенаправляем на главную
-      navigate('/');
-    } catch (error) {
-      console.error('Ошибка регистрации:', error);
-      setErrors({
-        form: error.message || 'Ошибка при регистрации. Попробуйте позже.'
-      });
+      await pb.collection('users').requestVerification(emailTrimmed, { requestKey: null });
+      setMode('verify_sent');
+    } catch (err) {
+      console.error('Ошибка регистрации:', err);
+      const fieldErrors = pbErrorToFieldErrors(err);
+      if (Object.keys(fieldErrors).length > 0) {
+        setErrors(fieldErrors);
+      } else {
+        setErrors({
+          form: err?.message || 'Не удалось создать аккаунт. Попробуйте позже.'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -96,124 +127,123 @@ function RegisterPage() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>
-          <span className={styles.titleIcon}>📝</span>
-          Регистрация
-        </h1>
+        {mode === 'verify_sent' ? (
+          <>
+            <h1 className={styles.title}>Проверьте почту</h1>
+            <div className={styles.muted}>
+              Мы отправили письмо на <span className={styles.emailInline}>{emailTrimmed}</span>. Перейдите по ссылке из
+              письма, чтобы подтвердить email.
+            </div>
 
-        {errors.form && (
-          <div className={styles.errorMessage}>
-            ⚠️ {errors.form}
-          </div>
+            {verifyError ? (
+              <div className={styles.errorMessage}>
+                ⚠️ {verifyError}
+              </div>
+            ) : null}
+
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.btnOutline}
+                disabled={verifySending}
+                onClick={requestVerify}
+              >
+                Отправить письмо ещё раз
+              </button>
+              <button type="button" className={styles.btnPrimary} onClick={() => navigate('/login')}>
+                Войти
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h1 className={styles.title}>Регистрация</h1>
+
+            {errors.form ? (
+              <div className={styles.errorMessage}>
+                ⚠️ {errors.form}
+              </div>
+            ) : null}
+
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Имя (необязательно)</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className={styles.input}
+                  placeholder="Как к вам обращаться?"
+                  disabled={loading}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Email <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
+                  placeholder="you@email.com"
+                  autoComplete="email"
+                  disabled={loading}
+                />
+                {errors.email ? <div className={styles.errorText}>{errors.email}</div> : null}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Пароль <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
+                  placeholder="Минимум 8 символов"
+                  autoComplete="new-password"
+                  disabled={loading}
+                />
+                {errors.password ? <div className={styles.errorText}>{errors.password}</div> : null}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>
+                  Подтверждение пароля <span className={styles.required}>*</span>
+                </label>
+                <input
+                  type="password"
+                  name="passwordConfirm"
+                  value={formData.passwordConfirm}
+                  onChange={handleChange}
+                  className={`${styles.input} ${errors.passwordConfirm ? styles.inputError : ''}`}
+                  placeholder="Повторите пароль"
+                  autoComplete="new-password"
+                  disabled={loading}
+                />
+                {errors.passwordConfirm ? (
+                  <div className={styles.errorText}>{errors.passwordConfirm}</div>
+                ) : null}
+              </div>
+
+              <div className={styles.helpText}>Пароль должен быть минимум 8 символов.</div>
+
+              <button type="submit" disabled={loading} className={styles.btnPrimary}>
+                {loading ? 'Создаём…' : 'Создать аккаунт'}
+              </button>
+            </form>
+
+            <div className={styles.loginLink}>
+              Уже есть аккаунт? <Link to="/login">Войти</Link>
+            </div>
+          </>
         )}
-
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Имя (опционально) */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              Имя (необязательно)
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className={styles.input}
-              placeholder="Как к вам обращаться?"
-            />
-          </div>
-
-          {/* Email */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              Email <span className={styles.required}>*</span>
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className={`${styles.input} ${errors.email ? styles.inputError : ''}`}
-              placeholder="your@email.com"
-            />
-            {errors.email && (
-              <div className={styles.errorText}>{errors.email}</div>
-            )}
-          </div>
-
-          {/* Пароль */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              Пароль <span className={styles.required}>*</span>
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className={`${styles.input} ${errors.password ? styles.inputError : ''}`}
-              placeholder="Минимум 8 символов"
-            />
-            {errors.password && (
-              <div className={styles.errorText}>{errors.password}</div>
-            )}
-          </div>
-
-          {/* Подтверждение пароля */}
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              Подтверждение пароля <span className={styles.required}>*</span>
-            </label>
-            <input
-              type="password"
-              name="passwordConfirm"
-              value={formData.passwordConfirm}
-              onChange={handleChange}
-              className={`${styles.input} ${errors.passwordConfirm ? styles.inputError : ''}`}
-              placeholder="Повторите пароль"
-            />
-            {errors.passwordConfirm && (
-              <div className={styles.errorText}>{errors.passwordConfirm}</div>
-            )}
-          </div>
-
-          {/* Требования к паролю */}
-          <div className={styles.passwordRequirements}>
-            <div className={styles.requirement}>
-              {formData.password.length >= 8 ? '✅' : '⚪'} Минимум 8 символов
-            </div>
-            <div className={styles.requirement}>
-              {/[A-Z]/.test(formData.password) ? '✅' : '⚪'} Хотя бы одна заглавная буква
-            </div>
-            <div className={styles.requirement}>
-              {/[0-9]/.test(formData.password) ? '✅' : '⚪'} Хотя бы одна цифра
-            </div>
-          </div>
-
-          {/* Кнопка регистрации */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={styles.submitButton}
-          >
-            {loading ? (
-              <>⏳ Регистрация...</>
-            ) : (
-              <>📝 Зарегистрироваться</>
-            )}
-          </button>
-        </form>
-
-        {/* Ссылка на вход */}
-        <div className={styles.loginLink}>
-          Уже есть аккаунт? <Link to="/login">Войти</Link>
-        </div>
-
-        {/* Тестовые данные */}
-        <div className={styles.demoNote}>
-          <strong>ℹ️ Для теста</strong> можно использовать:
-          <div>test@example.com / Test123456</div>
-        </div>
       </div>
     </div>
   );

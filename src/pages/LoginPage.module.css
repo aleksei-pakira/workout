@@ -7,40 +7,28 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  /* background: linear-gradient(...); */
-  /* background-color: #f5f5f5; */
-  background: #fff;
+  background: var(--bg, #fff);
   padding: 20px;
 }
 
 /* Карточка входа */
 .card {
-  padding: 40px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  max-width: 400px;
+  padding: 30px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--radius-lg, 20px);
+  box-shadow: var(--shadow-sm, 0 6px 18px rgba(0, 0, 0, 0.06));
+  max-width: 420px;
   width: 100%;
-  animation: slideUp 0.5s ease;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Заголовок */
 .title {
   text-align: center;
-  margin-bottom: 30px;
-  color: #333;
-  font-size: 28px;
+  margin: 0 0 20px;
+  color: var(--text, #111);
+  font-size: 22px;
+  font-weight: 900;
 }
 
 .titleIcon {
@@ -49,16 +37,17 @@
 
 /* Сообщение об ошибке */
 .errorMessage {
-  color: #721c24;
+  color: #b91c1c;
   padding: 12px;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  background: rgba(185, 28, 28, 0.08);
+  border: 1px solid rgba(185, 28, 28, 0.35);
+  border-radius: 10px;
+  margin-bottom: 14px;
   font-size: 14px;
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .errorIcon {
@@ -69,94 +58,111 @@
 .buttonContainer {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
-/* Базовые стили для кнопок входа */
-.loginButton {
-  padding: 15px;
-  border: none;
-  border-radius: 8px;
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--muted, #555);
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  color: var(--text, #111);
   font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  font-weight: 800;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.input:focus {
+  outline: none;
+  border-color: rgba(206, 17, 38, 0.45);
+  box-shadow: 0 0 0 3px rgba(206, 17, 38, 0.10);
+}
+
+.input:disabled {
+  opacity: 0.7;
+}
+
+/* Buttons (unified with app style) */
+.btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  position: relative;
-  overflow: hidden;
+  cursor: pointer;
+  font-weight: 900;
+  border: 0;
+  background: transparent;
 }
 
-.loginButton:disabled {
-  opacity: 0.7;
+.btn:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
-  transform: none !important;
 }
 
-.loginButton::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+.btnPrimary {
+  composes: btn;
+  background: var(--primary, #ce1126);
+  color: #fff;
 }
 
-.loginButton:hover:not(:disabled)::before {
-  width: 300px;
-  height: 300px;
+.btnPrimary:hover:not(:disabled) {
+  background: var(--primary-hover, #b50f22);
 }
 
-/* Кнопка администратора */
+.btnOutline {
+  composes: btn;
+  color: var(--primary, #ce1126);
+  border: 1px solid rgba(206, 17, 38, 0.3);
+  background: transparent;
+}
+
+.btnOutline:hover:not(:disabled) {
+  background: rgba(206, 17, 38, 0.06);
+}
+
 .adminButton {
-  composes: loginButton;
-  background-color: #4CAF50;
-  color: white;
-  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+  composes: btnOutline;
 }
 
-.adminButton:hover:not(:disabled) {
-  background-color: #45a049;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-}
-
-.adminButton:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-/* Кнопка пользователя */
 .userButton {
-  composes: loginButton;
-  background-color: #2196F3;
-  color: white;
-  box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);
-}
-
-.userButton:hover:not(:disabled) {
-  background-color: #1e88e5;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
-}
-
-.userButton:active:not(:disabled) {
-  transform: translateY(0);
+  composes: btnPrimary;
 }
 
 /* Иконки в кнопках */
 .buttonIcon {
   font-size: 20px;
-  transition: transform 0.3s ease;
-}
-
-.loginButton:hover:not(:disabled) .buttonIcon {
-  transform: scale(1.1);
 }
 
 /* Лоадер для кнопок */
@@ -177,35 +183,34 @@
 /* Дополнительная информация */
 .infoText {
   text-align: center;
-  margin-top: 20px;
-  color: #666;
+  margin-top: 16px;
+  color: var(--muted, #555);
   font-size: 13px;
-  border-top: 1px solid #eee;
-  padding-top: 20px;
+  border-top: 1px solid var(--border, #e2e8f0);
+  padding-top: 14px;
 }
 
 .demoCredentials {
-  background-color: #f8f9fa;
-  border-radius: 6px;
+  background: var(--surface-muted, #f7fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 10px;
   padding: 10px;
   margin-top: 10px;
-  font-family: monospace;
-  color: #495057;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: var(--text, #111);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Адаптивность */
 @media (max-width: 480px) {
   .card {
-    padding: 30px 20px;
+    padding: 24px 16px;
   }
 
   .title {
-    font-size: 24px;
-  }
-
-  .loginButton {
-    padding: 12px;
-    font-size: 14px;
+    font-size: 20px;
   }
 }
 
@@ -214,56 +219,17 @@
   pointer-events: none;
 }
 
-/* Анимация появления для карточки */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.card {
-  animation: fadeIn 0.5s ease;
-}
-
 .registerLink {
   text-align: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
-  color: #666;
+  margin-top: 14px;
+  color: var(--muted, #555);
   font-size: 14px;
 }
 
 .registerLink a {
-  color: #667eea;
+  color: var(--primary, #ce1126);
   text-decoration: none;
-  font-weight: 600;
-  margin-left: 5px;
-}
-
-.registerLink a:hover {
-  text-decoration: underline;
-}
-
-.registerLink {
-  text-align: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
-  color: #666;
-  font-size: 14px;
-}
-
-.registerLink a {
-  color: #667eea;
-  text-decoration: none;
-  font-weight: 600;
-  margin-left: 5px;
+  font-weight: 900;
 }
 
 .registerLink a:hover {
