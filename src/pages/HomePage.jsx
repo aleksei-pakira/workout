@@ -1,5 +1,5 @@
 // src/pages/HomePage.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
 import styles from './HomePage.module.css';
@@ -15,10 +15,6 @@ function HomePage() {
   const [loading, setLoading] = useState(true);
   const [avatar, setAvatar] = useState(null);
   const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
 
   useEffect(() => {
     const syncAvatar = () => {
@@ -38,7 +34,8 @@ function HomePage() {
     return unsubscribe;
   }, []);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
+    if (!user?.id) return;
     try {
       const { items: workouts } = await pb.collection('workouts').getList(1, 10, {
         filter: `user = "${user.id}"`,
@@ -104,7 +101,11 @@ function HomePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const handleAvatarUpload = async (e) => {
     const file = e.target.files[0];
@@ -141,11 +142,6 @@ function HomePage() {
     { text: "Тело достигает того, во что верит разум.", author: "unknown" }
   ];
   const todayQuote = quotes[new Date().getDay() % quotes.length];
-
-  const getFolderColor = (index) => {
-    const colors = [styles.folderBlue, styles.folderGreen, styles.folderOrange, styles.folderPurple];
-    return colors[index % colors.length];
-  };
 
   if (loading) {
     return (

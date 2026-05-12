@@ -161,7 +161,6 @@ function ExercisesPage() {
 
   const myQueryEscaped = escapePbLike(myQ.trim()).toLowerCase();
   const libraryQueryTrimmed = libraryQ.trim();
-  const libraryQueryEscaped = escapePbLike(libraryQueryTrimmed);
 
   const PER_PAGE = 60;
 

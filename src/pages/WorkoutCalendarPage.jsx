@@ -38,13 +38,6 @@ function addDays(date, days) {
   return d;
 }
 
-function addMonths(monthKey, delta) {
-  const { year, monthIndex } = parseMonthKey(monthKey);
-  const d = new Date(year, monthIndex, 1);
-  d.setMonth(d.getMonth() + delta);
-  return toMonthKey(d);
-}
-
 function startOfWeekMonday(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -87,11 +80,6 @@ function WorkoutCalendarPage() {
 
   const user = pb.authStore.model;
   const [exerciseNamesByDay, setExerciseNamesByDay] = useState({});
-
-  useEffect(() => {
-    if (!r) return;
-    setCalendarReloadKey((x) => x + 1);
-  }, [r]);
 
   useEffect(() => {
     let mounted = true;
@@ -164,7 +152,7 @@ function WorkoutCalendarPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.id, grid, calendarReloadKey]);
+  }, [user?.id, grid, calendarReloadKey, r]);
 
   return (
     <div className={styles.page}>

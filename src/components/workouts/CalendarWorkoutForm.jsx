@@ -29,7 +29,6 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dayWorkouts, setDayWorkouts] = useState([]);
-  const [creating, setCreating] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
   const [draftExercises, setDraftExercises] = useState(() => [
@@ -260,40 +259,6 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   const [workoutDataError, setWorkoutDataError] = useState(null);
   const [workoutExercises, setWorkoutExercises] = useState([]);
   const [setsByWeId, setSetsByWeId] = useState({});
-
-  const createWorkout = async () => {
-    if (!user?.id || !dayKey) return;
-    const nextDayKey = getNextDayKey(dayKey);
-    if (!nextDayKey) return;
-
-    try {
-      setCreating(true);
-      setError(null);
-
-      await pb.collection('workouts').create(
-        {
-          user: user.id,
-          date: dayKey,
-          title: `Тренировка ${dayKey}`,
-        },
-        { requestKey: null }
-      );
-
-      const list = await pb.collection('workouts').getFullList({
-        filter: `user = "${user.id}" && date >= "${dayKey}" && date < "${nextDayKey}"`,
-        sort: '-created',
-        requestKey: null,
-      });
-
-      setDayWorkouts(list);
-      onSaved?.();
-    } catch (e) {
-      console.error('Ошибка создания тренировки:', e);
-      setError('Не удалось создать тренировку');
-    } finally {
-      setCreating(false);
-    }
-  };
 
   useEffect(() => {
     let mounted = true;
