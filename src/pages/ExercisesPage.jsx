@@ -46,7 +46,7 @@ function ExercisesPage() {
     setLoading(true);
     try {
       // Мои созданные
-      const my = await pb.collection('user_exercises').getFullList({
+      const my = await pb.collection('exercises').getFullList({
         filter: `created_by = "${user.id}"`,
         sort: 'exercise_name',
         requestKey: null,
@@ -221,9 +221,10 @@ function ExercisesPage() {
     setCreateError('');
     setCreating(true);
     try {
-      await pb.collection('user_exercises').create(
+      await pb.collection('exercises').create(
         {
           created_by: user.id,
+          is_public: false,
           exercise_name: name,
           muscle_group: newExercise.muscle_group.trim(),
           video_url: newExercise.video_url.trim(),
@@ -253,7 +254,7 @@ function ExercisesPage() {
   const deleteMyExercise = async (id) => {
     if (!confirm('Удалить упражнение?')) return;
     try {
-      await pb.collection('user_exercises').delete(id, { requestKey: null });
+      await pb.collection('exercises').delete(id, { requestKey: null });
       await loadExercises();
     } catch (e) {
       console.error('Ошибка удаления упражнения:', e);
