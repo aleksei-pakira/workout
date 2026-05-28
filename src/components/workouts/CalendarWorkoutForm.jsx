@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import pb from '../../lib/pocketbase';
+import { useExerciseDropdownSource } from '../../hooks/useExerciseDropdownSource';
+import ExerciseSourceTabs from '../exercises/ExerciseSourceTabs';
 import styles from './CalendarWorkoutForm.module.css';
 
 function normalizeStatus(raw) {
@@ -41,29 +43,14 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [openExerciseDropdownIdx, setOpenExerciseDropdownIdx] = useState(null);
-  const [exercisesLoading, setExercisesLoading] = useState(false);
-  const [exercisesError, setExercisesError] = useState(null);
-  const [exercises, setExercises] = useState([]);
-
-  const loadExercises = async () => {
-    if (exercisesLoading) return;
-    if (exercises.length > 0) return;
-
-    try {
-      setExercisesLoading(true);
-      setExercisesError(null);
-      const list = await pb.collection('exercises').getFullList({
-        sort: 'exercise_name',
-        requestKey: null,
-      });
-      setExercises(list);
-    } catch (e) {
-      console.error('Ошибка загрузки упражнений:', e);
-      setExercisesError('Не удалось загрузить упражнения');
-    } finally {
-      setExercisesLoading(false);
-    }
-  };
+  const {
+    exerciseSource,
+    setExerciseSource,
+    visibleExercises,
+    loading: exercisesLoading,
+    error: exercisesError,
+    ensureLoaded: ensureExerciseSourcesLoaded,
+  } = useExerciseDropdownSource();
 
   const canSave = useMemo(
     () => draftExercises.length > 0 && draftExercises.every((x) => Boolean(x.exerciseId)),
@@ -124,7 +111,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   const toggleExerciseDropdown = async (exerciseIdx) => {
     const nextIdx = openExerciseDropdownIdx === exerciseIdx ? null : exerciseIdx;
     setOpenExerciseDropdownIdx(nextIdx);
-    if (nextIdx !== null) await loadExercises();
+    if (nextIdx !== null) await ensureExerciseSourcesLoaded();
   };
 
   const handleSave = async () => {
@@ -409,15 +396,16 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
 
                   {openExerciseDropdownIdx === exIdx && (
                     <div className={styles.exerciseDropdown}>
+                      <ExerciseSourceTabs value={exerciseSource} onChange={setExerciseSource} />
                       {exercisesLoading ? (
                         <div className={styles.dropdownMsg}>Загрузка…</div>
                       ) : exercisesError ? (
                         <div className={styles.dropdownError}>{exercisesError}</div>
-                      ) : exercises.length === 0 ? (
+                      ) : visibleExercises.length === 0 ? (
                         <div className={styles.dropdownMsg}>Нет упражнений</div>
                       ) : (
                         <div className={styles.dropdownList}>
-                          {exercises.map((ex) => (
+                          {visibleExercises.map((ex) => (
                             <button
                               key={ex.id}
                               type="button"

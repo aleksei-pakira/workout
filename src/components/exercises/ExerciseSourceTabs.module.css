@@ -1,0 +1,33 @@
+.tabs {
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.tab {
+  flex: 1 1 50%;
+  min-width: 0;
+  text-align: center;
+  padding: 10px 12px;
+  border: 0;
+  border-right: 1px solid var(--border, #e2e8f0);
+  background: transparent;
+  color: var(--text, #111);
+  font-weight: 900;
+  font-size: 13px;
+  cursor: pointer;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab:last-child {
+  border-right: 0;
+}
+
+.tabActive {
+  background: var(--surface-muted, #f8fafc);
+}
+

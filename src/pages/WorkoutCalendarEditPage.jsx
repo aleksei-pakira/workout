@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
+import { useExerciseDropdownSource } from '../hooks/useExerciseDropdownSource';
+import ExerciseSourceTabs from '../components/exercises/ExerciseSourceTabs';
 import styles from './WorkoutCalendarEditPage.module.css';
 
 function normalizeStatus(raw) {
@@ -29,33 +31,18 @@ function WorkoutCalendarEditPage() {
   const [draftNotes, setDraftNotes] = useState('');
   const [draftExercises, setDraftExercises] = useState([]);
   const [openExerciseDropdownIdx, setOpenExerciseDropdownIdx] = useState(null);
-  const [exercisesLoading, setExercisesLoading] = useState(false);
-  const [exercisesError, setExercisesError] = useState(null);
-  const [exercises, setExercises] = useState([]);
+  const {
+    exerciseSource,
+    setExerciseSource,
+    visibleExercises,
+    loading: exercisesLoading,
+    error: exercisesError,
+    ensureLoaded: ensureExerciseSourcesLoaded,
+  } = useExerciseDropdownSource();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
-
-  const loadExercises = async () => {
-    if (exercisesLoading) return;
-    if (exercises.length > 0) return;
-
-    try {
-      setExercisesLoading(true);
-      setExercisesError(null);
-      const list = await pb.collection('exercises').getFullList({
-        sort: 'exercise_name',
-        requestKey: null,
-      });
-      setExercises(list);
-    } catch (e) {
-      console.error('Ошибка загрузки упражнений:', e);
-      setExercisesError('Не удалось загрузить упражнения');
-    } finally {
-      setExercisesLoading(false);
-    }
-  };
 
   useEffect(() => {
     let mounted = true;
@@ -229,7 +216,7 @@ function WorkoutCalendarEditPage() {
   const toggleExerciseDropdown = async (exerciseIdx) => {
     const nextIdx = openExerciseDropdownIdx === exerciseIdx ? null : exerciseIdx;
     setOpenExerciseDropdownIdx(nextIdx);
-    if (nextIdx !== null) await loadExercises();
+    if (nextIdx !== null) await ensureExerciseSourcesLoaded();
   };
 
   const canSave = useMemo(
@@ -435,15 +422,16 @@ function WorkoutCalendarEditPage() {
 
                     {openExerciseDropdownIdx === exIdx && (
                       <div className={styles.exerciseDropdown}>
+                        <ExerciseSourceTabs value={exerciseSource} onChange={setExerciseSource} />
                         {exercisesLoading ? (
                           <div className={styles.dropdownMsg}>Загрузка…</div>
                         ) : exercisesError ? (
                           <div className={styles.dropdownError}>{exercisesError}</div>
-                        ) : exercises.length === 0 ? (
+                        ) : visibleExercises.length === 0 ? (
                           <div className={styles.dropdownMsg}>Нет упражнений</div>
                         ) : (
                           <div className={styles.dropdownList}>
-                            {exercises.map((ex) => (
+                            {visibleExercises.map((ex) => (
                               <button
                                 key={ex.id}
                                 type="button"

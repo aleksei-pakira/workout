@@ -37,10 +37,17 @@ npm run preview
 ```
 
 ## PocketBase (Backend)
-Приложение ожидает, что PocketBase доступен по адресу `http://127.0.0.1:8090`.
+URL API задаётся переменной **`VITE_PB_URL`** (см. `.env.example`). Если переменная не задана, используется **`http://127.0.0.1:8090`** (локальная разработка).
 
-URL PocketBase сейчас задан хардкодом в:
-- `src/lib/pocketbase.js`
+Продакшен-сборка:
+
+```bash
+cp .env.example .env
+# отредактируйте .env: VITE_PB_URL=https://api.ваш-домен.ru
+npm run build
+```
+
+Логика подключения: `src/lib/pocketbase.js`.
 
 ### Запуск PocketBase (пример)
 Скачай PocketBase и запусти:
