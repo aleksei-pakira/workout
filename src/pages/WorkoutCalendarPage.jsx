@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
+import { getActiveVariantExerciseName } from '../lib/workoutVariants';
 import MonthCalendar from '../components/workouts/MonthCalendar';
 import MonthCarousel from '../components/workouts/MonthCarousel';
 import CalendarWorkoutForm from '../components/workouts/CalendarWorkoutForm';
@@ -122,14 +123,34 @@ function WorkoutCalendarPage() {
           requestKey: null,
         });
 
+        const weIds = wes.map((we) => we.id);
+        let variantsByWeId = {};
+
+        if (weIds.length > 0) {
+          const weFilter = weIds.map((weId) => `workout_exercise = "${weId}"`).join(' || ');
+          const variants = await pb.collection('workout_exercise_variants').getFullList({
+            filter: weFilter,
+            expand: 'exercise',
+            sort: 'variant_index',
+            requestKey: null,
+          });
+
+          for (const v of variants) {
+            const weId = v.workout_exercise;
+            if (!variantsByWeId[weId]) variantsByWeId[weId] = [];
+            variantsByWeId[weId].push(v);
+          }
+        }
+
         if (!mounted) return;
 
-        const map = new Map(); // dayKey -> Set(names)
+        const map = new Map();
         for (const we of wes) {
           const dayKey = workoutDayKeyById.get(we.workout);
           if (!dayKey) continue;
 
-          const name = we.expand?.exercise?.exercise_name || we.custom_name || we.exercise_name;
+          const variants = variantsByWeId[we.id] || [];
+          const name = getActiveVariantExerciseName(we, variants);
           if (!name) continue;
 
           if (!map.has(dayKey)) map.set(dayKey, new Set());

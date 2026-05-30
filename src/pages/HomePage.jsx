@@ -54,25 +54,69 @@ function HomePage() {
       let bestWeight = 0;
       const exerciseCount = {};
 
-      for (const workout of workouts.slice(0, 5)) {
-        const exercises = await pb.collection('workout_exercises').getFullList({
-          filter: `workout = "${workout.id}"`,
+      const workoutIds = workouts.slice(0, 5).map((w) => w.id);
+      if (workoutIds.length > 0) {
+        const workoutFilter = workoutIds.map((wid) => `workout = "${wid}"`).join(' || ');
+        const exerciseBlocks = await pb.collection('workout_exercises').getFullList({
+          filter: workoutFilter,
           expand: 'exercise',
-          requestKey: null
+          requestKey: null,
         });
 
-        for (const ex of exercises) {
-          const exName = ex.expand?.exercise?.exercise_name || ex.custom_name;
+        const weIds = exerciseBlocks.map((ex) => ex.id);
+        let variantsByWeId = {};
+        let setsByVariantId = {};
+
+        if (weIds.length > 0) {
+          const weFilter = weIds.map((weId) => `workout_exercise = "${weId}"`).join(' || ');
+          const variants = await pb.collection('workout_exercise_variants').getFullList({
+            filter: weFilter,
+            expand: 'exercise',
+            requestKey: null,
+          });
+
+          for (const v of variants) {
+            const weId = v.workout_exercise;
+            if (!variantsByWeId[weId]) variantsByWeId[weId] = [];
+            variantsByWeId[weId].push(v);
+          }
+
+          const variantIds = variants.map((v) => v.id);
+          if (variantIds.length > 0) {
+            const variantFilter = variantIds
+              .map((vid) => `workout_exercise_variant = "${vid}"`)
+              .join(' || ');
+            const sets = await pb.collection('sets').getFullList({
+              filter: variantFilter,
+              requestKey: null,
+            });
+
+            for (const set of sets) {
+              const key = set.workout_exercise_variant;
+              if (!setsByVariantId[key]) setsByVariantId[key] = [];
+              setsByVariantId[key].push(set);
+            }
+          }
+        }
+
+        for (const ex of exerciseBlocks) {
+          const variants = variantsByWeId[ex.id] || [];
+          const activeIndex = ex.active_variant_index ?? 0;
+          const activeVariant =
+            variants.find((v) => v.variant_index === activeIndex) ||
+            variants.find((v) => v.variant_index === 0) ||
+            variants[0];
+
+          const exName =
+            activeVariant?.expand?.exercise?.exercise_name ||
+            ex.expand?.exercise?.exercise_name ||
+            ex.custom_name;
           if (exName) {
             exerciseCount[exName] = (exerciseCount[exName] || 0) + 1;
           }
 
-          const sets = await pb.collection('sets').getFullList({
-            filter: `workout_exercise = "${ex.id}"`,
-            requestKey: null
-          });
-
-          for (const set of sets) {
+          const variantSets = activeVariant ? setsByVariantId[activeVariant.id] || [] : [];
+          for (const set of variantSets) {
             if (set.weight > bestWeight) {
               bestWeight = set.weight;
             }

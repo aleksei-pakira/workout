@@ -2,7 +2,23 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import pb from '../../lib/pocketbase';
 import { useExerciseDropdownSource } from '../../hooks/useExerciseDropdownSource';
+import {
+  createEmptyBlock,
+  createEmptyVariantSlot,
+  getEditCarouselVariantCount,
+  getSortedVariantIndices,
+  getVariantExerciseName,
+  getVariantRecordByIndex,
+  MAIN_VARIANT_INDEX,
+  resolveActiveVariantIndex,
+} from '../../lib/workoutVariantConstants';
+import {
+  loadWorkoutBlocks,
+  saveBlockVariantsAndSets,
+  setActiveVariantIndex,
+} from '../../lib/workoutVariants';
 import ExerciseSourceTabs from '../exercises/ExerciseSourceTabs';
+import ExerciseVariantCarousel from './ExerciseVariantCarousel';
 import styles from './CalendarWorkoutForm.module.css';
 
 function normalizeStatus(raw) {
@@ -33,16 +49,10 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   const [dayWorkouts, setDayWorkouts] = useState([]);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
-  const [draftExercises, setDraftExercises] = useState(() => [
-    {
-      exerciseId: '',
-      exerciseName: '',
-      sets: [{ set_number: 1, weight: '', reps: '', status: 'planned' }],
-    },
-  ]);
+  const [draftExercises, setDraftExercises] = useState(() => [createEmptyBlock(1)]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const [openExerciseDropdownIdx, setOpenExerciseDropdownIdx] = useState(null);
+  const [openExerciseDropdown, setOpenExerciseDropdown] = useState(null);
   const {
     exerciseSource,
     setExerciseSource,
@@ -53,72 +63,150 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   } = useExerciseDropdownSource();
 
   const canSave = useMemo(
-    () => draftExercises.length > 0 && draftExercises.every((x) => Boolean(x.exerciseId)),
+    () =>
+      draftExercises.length > 0 &&
+      draftExercises.every((block) => Boolean(block.variants?.[MAIN_VARIANT_INDEX]?.exerciseId)),
     [draftExercises]
   );
 
-  const updateDraftExercise = (idx, patch) => {
-    setDraftExercises((prev) => prev.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
+  const ensureVariantSlot = (block, variantIndex) => {
+    if (block.variants?.[variantIndex]) return block;
+    return {
+      ...block,
+      variants: {
+        ...block.variants,
+        [variantIndex]: createEmptyVariantSlot(variantIndex),
+      },
+    };
   };
 
-  const updateDraftSet = (exerciseIdx, setIdx, field, value) => {
-    setDraftExercises((prev) => {
-      const ex = prev[exerciseIdx];
-      if (!ex) return prev;
-      const nextSets = (ex.sets || []).map((s, i) => (i === setIdx ? { ...s, [field]: value } : s));
-      return prev.map((x, i) => (i === exerciseIdx ? { ...x, sets: nextSets } : x));
-    });
+  const getActiveVariant = (block) => {
+    const idx = block.activeVariantIndex ?? MAIN_VARIANT_INDEX;
+    return block.variants?.[idx] || createEmptyVariantSlot(idx);
   };
 
-  const removeDraftSet = (exerciseIdx, setIdx) => {
-    setDraftExercises((prev) => {
-      const ex = prev[exerciseIdx];
-      if (!ex) return prev;
-      const sets = ex.sets || [];
-      if (sets.length <= 1) return prev;
-      const next = sets.filter((_, i) => i !== setIdx).map((s, i) => ({ ...s, set_number: i + 1 }));
-      return prev.map((x, i) => (i === exerciseIdx ? { ...x, sets: next } : x));
-    });
+  const updateDraftVariant = (blockIdx, variantIndex, patch) => {
+    setDraftExercises((prev) =>
+      prev.map((block, i) => {
+        if (i !== blockIdx) return block;
+        const withSlot = ensureVariantSlot(block, variantIndex);
+        const current = withSlot.variants[variantIndex];
+        return {
+          ...withSlot,
+          variants: {
+            ...withSlot.variants,
+            [variantIndex]: { ...current, ...patch },
+          },
+        };
+      })
+    );
   };
 
-  const removeDraftExercise = (exerciseIdx) => {
+  const updateDraftSet = (blockIdx, variantIndex, setIdx, field, value) => {
+    setDraftExercises((prev) =>
+      prev.map((block, i) => {
+        if (i !== blockIdx) return block;
+        const withSlot = ensureVariantSlot(block, variantIndex);
+        const variant = withSlot.variants[variantIndex];
+        const nextSets = (variant.sets || []).map((s, j) =>
+          j === setIdx ? { ...s, [field]: value } : s
+        );
+        return {
+          ...withSlot,
+          variants: {
+            ...withSlot.variants,
+            [variantIndex]: { ...variant, sets: nextSets },
+          },
+        };
+      })
+    );
+  };
+
+  const removeDraftSet = (blockIdx, variantIndex, setIdx) => {
+    setDraftExercises((prev) =>
+      prev.map((block, i) => {
+        if (i !== blockIdx) return block;
+        const withSlot = ensureVariantSlot(block, variantIndex);
+        const variant = withSlot.variants[variantIndex];
+        const sets = variant.sets || [];
+        if (sets.length <= 1) return block;
+        const nextSets = sets
+          .filter((_, j) => j !== setIdx)
+          .map((s, j) => ({ ...s, set_number: j + 1 }));
+        return {
+          ...withSlot,
+          variants: {
+            ...withSlot.variants,
+            [variantIndex]: { ...variant, sets: nextSets },
+          },
+        };
+      })
+    );
+  };
+
+  const removeDraftExercise = (blockIdx) => {
     setDraftExercises((prev) => {
       if (prev.length <= 1) return prev;
-      return prev.filter((_, i) => i !== exerciseIdx);
+      return prev.filter((_, i) => i !== blockIdx);
     });
 
-    setOpenExerciseDropdownIdx((prev) => {
-      if (prev === null) return null;
-      if (prev === exerciseIdx) return null;
-      if (prev > exerciseIdx) return prev - 1;
+    setOpenExerciseDropdown((prev) => {
+      if (!prev) return null;
+      if (prev.blockIdx === blockIdx) return null;
+      if (prev.blockIdx > blockIdx) return { ...prev, blockIdx: prev.blockIdx - 1 };
       return prev;
     });
   };
 
-  const addDraftSet = (exerciseIdx) => {
-    setDraftExercises((prev) => {
-      const ex = prev[exerciseIdx];
-      if (!ex) return prev;
-      const sets = ex.sets || [];
-      const nextSets = [
-        ...sets,
-        { set_number: sets.length + 1, weight: '', reps: '', status: 'planned' },
-      ];
-      return prev.map((x, i) => (i === exerciseIdx ? { ...x, sets: nextSets } : x));
-    });
+  const addDraftSet = (blockIdx, variantIndex) => {
+    setDraftExercises((prev) =>
+      prev.map((block, i) => {
+        if (i !== blockIdx) return block;
+        const withSlot = ensureVariantSlot(block, variantIndex);
+        const variant = withSlot.variants[variantIndex];
+        const sets = variant.sets || [];
+        const nextSets = [
+          ...sets,
+          { set_number: sets.length + 1, weight: '', reps: '', status: 'planned' },
+        ];
+        return {
+          ...withSlot,
+          variants: {
+            ...withSlot.variants,
+            [variantIndex]: { ...variant, sets: nextSets },
+          },
+        };
+      })
+    );
   };
 
-  const toggleExerciseDropdown = async (exerciseIdx) => {
-    const nextIdx = openExerciseDropdownIdx === exerciseIdx ? null : exerciseIdx;
-    setOpenExerciseDropdownIdx(nextIdx);
-    if (nextIdx !== null) await ensureExerciseSourcesLoaded();
+  const changeActiveVariant = (blockIdx, nextIndex) => {
+    setDraftExercises((prev) =>
+      prev.map((block, i) => {
+        if (i !== blockIdx) return block;
+        return ensureVariantSlot({ ...block, activeVariantIndex: nextIndex }, nextIndex);
+      })
+    );
+    setOpenExerciseDropdown(null);
   };
+
+  const toggleExerciseDropdown = async (blockIdx, variantIndex) => {
+    const isOpen =
+      openExerciseDropdown?.blockIdx === blockIdx &&
+      openExerciseDropdown?.variantIndex === variantIndex;
+    setOpenExerciseDropdown(isOpen ? null : { blockIdx, variantIndex });
+    if (!isOpen) await ensureExerciseSourcesLoaded();
+  };
+
+  const isDropdownOpen = (blockIdx, variantIndex) =>
+    openExerciseDropdown?.blockIdx === blockIdx &&
+    openExerciseDropdown?.variantIndex === variantIndex;
 
   const handleSave = async () => {
     if (!user?.id) return;
     if (!dayKey) return;
     if (!draftExercises.length) return;
-    if (!draftExercises.every((x) => x.exerciseId)) return;
+    if (!draftExercises.every((block) => block.variants?.[MAIN_VARIANT_INDEX]?.exerciseId)) return;
 
     const nextDayKey = getNextDayKey(dayKey);
     if (!nextDayKey) return;
@@ -150,34 +238,13 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
       );
 
       await Promise.all(
-        draftExercises.map(async (ex, exIdx) => {
-          const we = await pb.collection('workout_exercises').create(
-            {
-              workout: workout.id,
-              exercise: ex.exerciseId,
-              order_index: exIdx + 1,
-            },
-            { requestKey: null }
-          );
-
-          const setsToCreate =
-            ex.sets && ex.sets.length ? ex.sets : [{ weight: '', reps: '', status: 'planned' }];
-
-          await Promise.all(
-            setsToCreate.map((s, i) =>
-              pb.collection('sets').create(
-                {
-                  workout_exercise: we.id,
-                  set_number: i + 1,
-                  weight: Number(s.weight) || 0,
-                  reps: Number(s.reps) || 0,
-                  status: s.status || 'planned',
-                },
-                { requestKey: null }
-              )
-            )
-          );
-        })
+        draftExercises.map((block, exIdx) =>
+          saveBlockVariantsAndSets({
+            workoutId: workout.id,
+            blockDraft: block,
+            orderIndex: exIdx + 1,
+          })
+        )
       );
 
       const list = await pb.collection('workouts').getFullList({
@@ -187,7 +254,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
       });
 
       setDayWorkouts(list);
-      setOpenExerciseDropdownIdx(null);
+      setOpenExerciseDropdown(null);
       onSaved?.();
       onClose?.();
     } catch (e) {
@@ -244,16 +311,16 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
 
   const [loadingWorkoutData, setLoadingWorkoutData] = useState(false);
   const [workoutDataError, setWorkoutDataError] = useState(null);
-  const [workoutExercises, setWorkoutExercises] = useState([]);
-  const [setsByWeId, setSetsByWeId] = useState({});
+  const [viewBlocks, setViewBlocks] = useState([]);
+  const [activeVariantByWeId, setActiveVariantByWeId] = useState({});
 
   useEffect(() => {
     let mounted = true;
 
     const loadWorkoutData = async () => {
       if (!activeWorkout?.id) {
-        setWorkoutExercises([]);
-        setSetsByWeId({});
+        setViewBlocks([]);
+        setActiveVariantByWeId({});
         setWorkoutDataError(null);
         return;
       }
@@ -262,44 +329,27 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
         setLoadingWorkoutData(true);
         setWorkoutDataError(null);
 
-        const weList = await pb.collection('workout_exercises').getFullList({
-          filter: `workout = "${activeWorkout.id}"`,
-          expand: 'exercise',
-          sort: 'order_index',
-          requestKey: null,
-        });
-
-        if (!mounted) return;
-        setWorkoutExercises(weList);
-
-        const weIds = weList.map((x) => x.id);
-        if (weIds.length === 0) {
-          setSetsByWeId({});
-          return;
-        }
-
-        const filter = weIds.map((id) => `workout_exercise = "${id}"`).join(' || ');
-        const sets = await pb.collection('sets').getFullList({
-          filter,
-          sort: 'set_number',
-          requestKey: null,
-        });
+        const { blocks } = await loadWorkoutBlocks(activeWorkout.id);
 
         if (!mounted) return;
 
-        const grouped = {};
-        for (const s of sets) {
-          const key = s.workout_exercise;
-          if (!grouped[key]) grouped[key] = [];
-          grouped[key].push(s);
+        setViewBlocks(blocks);
+
+        const initialActive = {};
+        for (const block of blocks) {
+          const weId = block.we.id;
+          initialActive[weId] = resolveActiveVariantIndex(
+            block.variants,
+            block.we.active_variant_index ?? MAIN_VARIANT_INDEX
+          );
         }
-        setSetsByWeId(grouped);
+        setActiveVariantByWeId(initialActive);
       } catch (e) {
         console.error('Ошибка загрузки упражнений/подходов:', e);
         if (!mounted) return;
         setWorkoutDataError('Не удалось загрузить упражнения и подходы');
-        setWorkoutExercises([]);
-        setSetsByWeId({});
+        setViewBlocks([]);
+        setActiveVariantByWeId({});
       } finally {
         if (mounted) setLoadingWorkoutData(false);
       }
@@ -311,30 +361,63 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
     };
   }, [activeWorkout?.id]);
 
-  const updateSetStatus = async (weId, setId, nextStatus) => {
-    const normalizedNext = normalizeStatus(nextStatus);
-    const prevSet = (setsByWeId[weId] || []).find((s) => s.id === setId);
-    const prevStatus = normalizeStatus(prevSet?.status);
+  const changeViewVariant = async (weId, nextVariantIndex) => {
+    const prevIndex = activeVariantByWeId[weId];
 
-    setSetsByWeId((prev) => ({
-      ...prev,
-      [weId]: (prev[weId] || []).map((s) =>
-        s.id === setId ? { ...s, status: normalizedNext } : s
-      ),
-    }));
+    setActiveVariantByWeId((prev) => ({ ...prev, [weId]: nextVariantIndex }));
+
+    try {
+      await setActiveVariantIndex(weId, nextVariantIndex);
+    } catch (e) {
+      console.error('Ошибка сохранения активного варианта:', e);
+      setWorkoutDataError('Не удалось сохранить активный вариант');
+      setActiveVariantByWeId((prev) => ({ ...prev, [weId]: prevIndex }));
+    }
+  };
+
+  const updateSetStatus = async (variantId, setId, nextStatus) => {
+    const normalizedNext = normalizeStatus(nextStatus);
+
+    let prevStatus = 'planned';
+    setViewBlocks((prev) =>
+      prev.map((block) => {
+        const sets = block.setsByVariantId[variantId];
+        if (!sets) return block;
+        const prevSet = sets.find((s) => s.id === setId);
+        if (prevSet) prevStatus = normalizeStatus(prevSet.status);
+
+        return {
+          ...block,
+          setsByVariantId: {
+            ...block.setsByVariantId,
+            [variantId]: sets.map((s) =>
+              s.id === setId ? { ...s, status: normalizedNext } : s
+            ),
+          },
+        };
+      })
+    );
 
     try {
       await pb.collection('sets').update(setId, { status: normalizedNext }, { requestKey: null });
     } catch (e) {
       console.error('Ошибка обновления статуса подхода:', e);
-      console.error('PocketBase error details:', e?.data || e?.response || e);
       setWorkoutDataError('Не удалось сохранить статус');
-      setSetsByWeId((prev) => ({
-        ...prev,
-        [weId]: (prev[weId] || []).map((s) =>
-          s.id === setId ? { ...s, status: prevStatus } : s
-        ),
-      }));
+      setViewBlocks((prev) =>
+        prev.map((block) => {
+          const sets = block.setsByVariantId[variantId];
+          if (!sets) return block;
+          return {
+            ...block,
+            setsByVariantId: {
+              ...block.setsByVariantId,
+              [variantId]: sets.map((s) =>
+                s.id === setId ? { ...s, status: prevStatus } : s
+              ),
+            },
+          };
+        })
+      );
     }
   };
 
@@ -371,113 +454,131 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                 placeholder="Workout notes (optional)"
               />
 
-              {draftExercises.map((exBlock, exIdx) => (
-                <div key={exIdx} className={styles.exerciseBlock}>
-                  <div className={styles.exerciseRow}>
-                    <div className={styles.exerciseIndex}>{exIdx + 1}</div>
-                    <button
-                      type="button"
-                      className={styles.exerciseNameBtn}
-                      onClick={() => toggleExerciseDropdown(exIdx)}
-                      title={exBlock.exerciseName}
-                    >
-                      {exBlock.exerciseName || 'Exercise'}
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.removeExerciseBtn}
-                      onClick={() => removeDraftExercise(exIdx)}
-                      disabled={exIdx === 0 || draftExercises.length <= 1}
-                      aria-label="Remove exercise"
-                    >
-                      ×
-                    </button>
-                  </div>
+              {draftExercises.map((exBlock, exIdx) => {
+                const activeVariantIndex = exBlock.activeVariantIndex ?? MAIN_VARIANT_INDEX;
+                const activeVariant = getActiveVariant(exBlock);
+                const variantCount = getEditCarouselVariantCount(exBlock.variants);
 
-                  {openExerciseDropdownIdx === exIdx && (
-                    <div className={styles.exerciseDropdown}>
-                      <ExerciseSourceTabs value={exerciseSource} onChange={setExerciseSource} />
-                      {exercisesLoading ? (
-                        <div className={styles.dropdownMsg}>Загрузка…</div>
-                      ) : exercisesError ? (
-                        <div className={styles.dropdownError}>{exercisesError}</div>
-                      ) : visibleExercises.length === 0 ? (
-                        <div className={styles.dropdownMsg}>Нет упражнений</div>
-                      ) : (
-                        <div className={styles.dropdownList}>
-                          {visibleExercises.map((ex) => (
-                            <button
-                              key={ex.id}
-                              type="button"
-                              className={styles.dropdownItem}
-                              onClick={() => {
-                                updateDraftExercise(exIdx, {
-                                  exerciseId: ex.id,
-                                  exerciseName: ex.exercise_name || '',
-                                });
-                                setOpenExerciseDropdownIdx(null);
-                              }}
-                            >
-                              {ex.exercise_name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                return (
+                  <div key={exIdx} className={styles.exerciseBlock}>
+                    <ExerciseVariantCarousel
+                      variantIndex={activeVariantIndex}
+                      variantCount={variantCount}
+                      mode="edit"
+                      onPrev={() => changeActiveVariant(exIdx, activeVariantIndex - 1)}
+                      onNext={() => changeActiveVariant(exIdx, activeVariantIndex + 1)}
+                    />
 
-                  <div className={styles.setsTable}>
-                    <div className={styles.setsHeader}>
-                      <div className={styles.hCell}>weight</div>
-                      <div className={styles.hCell}>reps</div>
-                      <div className={styles.hCell}>status</div>
+                    <div className={styles.exerciseRow}>
+                      <div className={styles.exerciseIndex}>{exIdx + 1}</div>
+                      <button
+                        type="button"
+                        className={styles.exerciseNameBtn}
+                        onClick={() => toggleExerciseDropdown(exIdx, activeVariantIndex)}
+                        title={activeVariant.exerciseName}
+                      >
+                        {activeVariant.exerciseName || 'Выберите упражнение'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.removeExerciseBtn}
+                        onClick={() => removeDraftExercise(exIdx)}
+                        disabled={exIdx === 0 || draftExercises.length <= 1}
+                        aria-label="Remove exercise"
+                      >
+                        ×
+                      </button>
                     </div>
 
-                    {(exBlock.sets || []).map((s, setIdx) => (
-                      <div key={s.set_number} className={styles.setRowCreate}>
-                        <div className={styles.cell}>
-                          <input
-                            type="number"
-                            className={styles.cellInput}
-                            value={s.weight}
-                            onChange={(e) => updateDraftSet(exIdx, setIdx, 'weight', e.target.value)}
-                            placeholder="0"
-                            inputMode="decimal"
-                          />
-                        </div>
-                        <div className={styles.cell}>
-                          <input
-                            type="number"
-                            className={styles.cellInput}
-                            value={s.reps}
-                            onChange={(e) => updateDraftSet(exIdx, setIdx, 'reps', e.target.value)}
-                            placeholder="0"
-                            inputMode="numeric"
-                          />
-                        </div>
-                        <div className={styles.cell}>{s.status}</div>
-                        <button
-                          type="button"
-                          className={styles.removeSetBtn}
-                          onClick={() => removeDraftSet(exIdx, setIdx)}
-                          aria-label="Remove set"
-                          disabled={(exBlock.sets || []).length <= 1}
-                        >
-                          ×
-                        </button>
+                    {isDropdownOpen(exIdx, activeVariantIndex) && (
+                      <div className={styles.exerciseDropdown}>
+                        <ExerciseSourceTabs value={exerciseSource} onChange={setExerciseSource} />
+                        {exercisesLoading ? (
+                          <div className={styles.dropdownMsg}>Загрузка…</div>
+                        ) : exercisesError ? (
+                          <div className={styles.dropdownError}>{exercisesError}</div>
+                        ) : visibleExercises.length === 0 ? (
+                          <div className={styles.dropdownMsg}>Нет упражнений</div>
+                        ) : (
+                          <div className={styles.dropdownList}>
+                            {visibleExercises.map((ex) => (
+                              <button
+                                key={ex.id}
+                                type="button"
+                                className={styles.dropdownItem}
+                                onClick={() => {
+                                  updateDraftVariant(exIdx, activeVariantIndex, {
+                                    exerciseId: ex.id,
+                                    exerciseName: ex.exercise_name || '',
+                                  });
+                                  setOpenExerciseDropdown(null);
+                                }}
+                              >
+                                {ex.exercise_name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    )}
 
-                    <button
-                      type="button"
-                      className={styles.addSetBtn}
-                      onClick={() => addDraftSet(exIdx)}
-                    >
-                      + Добавить подход
-                    </button>
+                    <div className={styles.setsTable}>
+                      <div className={styles.setsHeader}>
+                        <div className={styles.hCell}>weight</div>
+                        <div className={styles.hCell}>reps</div>
+                        <div className={styles.hCell}>status</div>
+                      </div>
+
+                      {(activeVariant.sets || []).map((s, setIdx) => (
+                        <div key={s.set_number} className={styles.setRowCreate}>
+                          <div className={styles.cell}>
+                            <input
+                              type="number"
+                              className={styles.cellInput}
+                              value={s.weight}
+                              onChange={(e) =>
+                                updateDraftSet(exIdx, activeVariantIndex, setIdx, 'weight', e.target.value)
+                              }
+                              placeholder="0"
+                              inputMode="decimal"
+                            />
+                          </div>
+                          <div className={styles.cell}>
+                            <input
+                              type="number"
+                              className={styles.cellInput}
+                              value={s.reps}
+                              onChange={(e) =>
+                                updateDraftSet(exIdx, activeVariantIndex, setIdx, 'reps', e.target.value)
+                              }
+                              placeholder="0"
+                              inputMode="numeric"
+                            />
+                          </div>
+                          <div className={styles.cell}>{s.status}</div>
+                          <button
+                            type="button"
+                            className={styles.removeSetBtn}
+                            onClick={() => removeDraftSet(exIdx, activeVariantIndex, setIdx)}
+                            aria-label="Remove set"
+                            disabled={(activeVariant.sets || []).length <= 1}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        className={styles.addSetBtn}
+                        onClick={() => addDraftSet(exIdx, activeVariantIndex)}
+                      >
+                        + Добавить подход
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               <div className={styles.createFooter}>
                 <button
@@ -486,13 +587,9 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                   onClick={() => {
                     setDraftExercises((prev) => [
                       ...prev,
-                      {
-                        exerciseId: '',
-                        exerciseName: '',
-                        sets: [{ set_number: 1, weight: '', reps: '', status: 'planned' }],
-                      },
+                      createEmptyBlock(prev.length + 1),
                     ]);
-                    setOpenExerciseDropdownIdx(null);
+                    setOpenExerciseDropdown(null);
                   }}
                 >
                   + Добавить упражнение
@@ -531,17 +628,45 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                 <div className={styles.muted}>Загрузка упражнений…</div>
               ) : workoutDataError ? (
                 <div className={styles.error}>{workoutDataError}</div>
-              ) : workoutExercises.length === 0 ? (
+              ) : viewBlocks.length === 0 ? (
                 <div className={styles.muted}>В этой тренировке пока нет упражнений</div>
               ) : (
                 <div className={styles.exercises}>
-                  {workoutExercises.map((we, idx) => {
-                    const exerciseName =
-                      we.expand?.exercise?.exercise_name || we.custom_name || we.exercise_name || '';
-                    const sets = setsByWeId[we.id] || [];
+                  {viewBlocks.map((block, idx) => {
+                    const we = block.we;
+                    const sortedIndices = getSortedVariantIndices(block.variants);
+                    const activeVariantIndex = resolveActiveVariantIndex(
+                      block.variants,
+                      activeVariantByWeId[we.id] ?? we.active_variant_index ?? MAIN_VARIANT_INDEX
+                    );
+                    const carouselPos = sortedIndices.indexOf(activeVariantIndex);
+                    const activeVariant = getVariantRecordByIndex(block.variants, activeVariantIndex);
+                    const exerciseName = getVariantExerciseName(activeVariant, we);
+                    const sets = activeVariant
+                      ? block.setsByVariantId[activeVariant.id] || []
+                      : [];
 
                     return (
                       <div key={we.id} className={styles.exerciseBlock}>
+                        {sortedIndices.length > 0 && (
+                          <ExerciseVariantCarousel
+                            variantIndex={activeVariantIndex}
+                            variantCount={sortedIndices.length}
+                            positionIndex={carouselPos >= 0 ? carouselPos : 0}
+                            mode="view"
+                            onPrev={() => {
+                              if (carouselPos > 0) {
+                                changeViewVariant(we.id, sortedIndices[carouselPos - 1]);
+                              }
+                            }}
+                            onNext={() => {
+                              if (carouselPos < sortedIndices.length - 1) {
+                                changeViewVariant(we.id, sortedIndices[carouselPos + 1]);
+                              }
+                            }}
+                          />
+                        )}
+
                         <div className={styles.exerciseRow}>
                           <div className={styles.exerciseIndex}>{idx + 1}</div>
                           <div className={styles.exerciseName} title={exerciseName}>
@@ -570,7 +695,10 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                                     <select
                                       className={styles.statusSelect}
                                       value={statusValue}
-                                      onChange={(e) => updateSetStatus(we.id, s.id, e.target.value)}
+                                      onChange={(e) => {
+                                        if (!activeVariant?.id) return;
+                                        updateSetStatus(activeVariant.id, s.id, e.target.value);
+                                      }}
                                     >
                                       <option value="planned">plan</option>
                                       <option value="completed">done</option>
