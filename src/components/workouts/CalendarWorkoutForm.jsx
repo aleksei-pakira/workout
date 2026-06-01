@@ -19,9 +19,13 @@ import {
 } from '../../lib/workoutVariants';
 import {
   DEFAULT_SET_STATUS,
+  DEFAULT_WORKOUT_STATUS,
   normalizeSetStatus,
+  normalizeWorkoutStatus,
   SET_STATUS_OPTIONS,
   statusToPocketBase,
+  WORKOUT_STATUS_OPTIONS,
+  workoutStatusToPocketBase,
 } from '../../lib/setStatus';
 import ExerciseSourceTabs from '../exercises/ExerciseSourceTabs';
 import ExerciseVariantCarousel from './ExerciseVariantCarousel';
@@ -46,8 +50,10 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   const [dayWorkouts, setDayWorkouts] = useState([]);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
+  const [draftWorkoutStatus, setDraftWorkoutStatus] = useState(DEFAULT_WORKOUT_STATUS);
   const [draftExercises, setDraftExercises] = useState(() => [createEmptyBlock(1)]);
   const [saving, setSaving] = useState(false);
+  const [workoutStatusSaving, setWorkoutStatusSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [openExerciseDropdown, setOpenExerciseDropdown] = useState(null);
   const {
@@ -230,6 +236,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
           date: dayKey,
           title: draftTitle,
           notes: draftNotes,
+          workout_status: workoutStatusToPocketBase(draftWorkoutStatus),
         },
         { requestKey: null }
       );
@@ -358,6 +365,38 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
     };
   }, [activeWorkout?.id]);
 
+  const updateWorkoutStatus = async (nextStatus) => {
+    const workoutId = activeWorkout?.id;
+    if (!workoutId) return;
+
+    const normalizedNext = normalizeWorkoutStatus(nextStatus);
+    const prevWorkouts = dayWorkouts;
+    const prevStatus = normalizeWorkoutStatus(activeWorkout?.workout_status);
+
+    setDayWorkouts((prev) =>
+      prev.map((w) =>
+        w.id === workoutId ? { ...w, workout_status: workoutStatusToPocketBase(normalizedNext) } : w
+      )
+    );
+
+    try {
+      setWorkoutStatusSaving(true);
+      await pb.collection('workouts').update(
+        workoutId,
+        { workout_status: workoutStatusToPocketBase(normalizedNext) },
+        { requestKey: null }
+      );
+    } catch (e) {
+      console.error('Ошибка обновления статуса тренировки:', e);
+      setWorkoutDataError('Не удалось сохранить статус тренировки');
+      setDayWorkouts(prevWorkouts.map((w) =>
+        w.id === workoutId ? { ...w, workout_status: workoutStatusToPocketBase(prevStatus) } : w
+      ));
+    } finally {
+      setWorkoutStatusSaving(false);
+    }
+  };
+
   const changeViewVariant = async (weId, nextVariantIndex) => {
     const prevIndex = activeVariantByWeId[weId];
 
@@ -443,12 +482,26 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
             <div className={styles.error}>{error}</div>
           ) : isCreateMode ? (
             <div className={styles.workoutSummary}>
-              <input
-                className={styles.workoutTitleInput}
-                value={draftTitle}
-                onChange={(e) => setDraftTitle(e.target.value)}
-                placeholder="Workout name"
-              />
+              <div className={styles.workoutTitleRow}>
+                <input
+                  className={styles.workoutTitleInput}
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  placeholder="Workout name"
+                />
+                <select
+                  className={styles.workoutStatusSelect}
+                  value={normalizeWorkoutStatus(draftWorkoutStatus)}
+                  onChange={(e) => setDraftWorkoutStatus(e.target.value)}
+                  aria-label="Статус тренировки"
+                >
+                  {WORKOUT_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <input
                 className={styles.workoutNotesInput}
@@ -626,7 +679,24 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
             </div>
           ) : (
             <div className={styles.workoutSummary}>
-              <div className={styles.workoutTitle}>{activeWorkout?.title || 'Тренировка'}</div>
+              <div className={styles.workoutTitleRow}>
+                <div className={styles.workoutTitle}>{activeWorkout?.title || 'Тренировка'}</div>
+                {activeWorkout?.id ? (
+                  <select
+                    className={styles.workoutStatusSelect}
+                    value={normalizeWorkoutStatus(activeWorkout?.workout_status)}
+                    disabled={workoutStatusSaving}
+                    onChange={(e) => updateWorkoutStatus(e.target.value)}
+                    aria-label="Статус тренировки"
+                  >
+                    {WORKOUT_STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
               {activeWorkout?.notes ? (
                 <div className={styles.workoutNotes}>{activeWorkout.notes}</div>
               ) : null}

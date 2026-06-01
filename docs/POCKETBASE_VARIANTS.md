@@ -87,9 +87,20 @@ API (multi-select): в ответе может быть `"status": ["done"]`. П
 
 | Rule | Выражение |
 |------|-----------|
-| List / View | `user = @request.auth.id` |готово
+| List / View | `user = @request.auth.id` |
 | Create | `@request.auth.id != "" && user = @request.auth.id` |
 | Update / Delete | `@request.auth.id != "" && user = @request.auth.id` |
+
+#### `workouts.workout_status`
+
+| Параметр | Значение |
+|----------|----------|
+| Type | Select, multiple (max 1) |
+| Values | `planned`, `done`, `failed`, `skipped` |
+| Default в PB | **нет** — в UI и при create всегда fallback **`planned`** |
+| Независимость | не связан с `sets.status`; задаётся пользователем в шапке тренировки |
+
+Фронт при create/update всегда отправляет `workout_status: ["planned"]` и т.д. Пустое поле в API → отображение `planned`.
 
 ### `workout_exercises`
 

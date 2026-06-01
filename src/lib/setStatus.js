@@ -1,4 +1,7 @@
-/** Канонические значения status в PocketBase, draft и UI */
+/**
+ * Общая номенклатура статусов для sets.status и workouts.workout_status.
+ * Поля в PocketBase независимы; default в PB для workout_status нет — fallback на фронте.
+ */
 export const SET_STATUS = {
   PLANNED: 'planned',
   DONE: 'done',
@@ -15,6 +18,9 @@ export const SET_STATUS_OPTIONS = [
   { value: SET_STATUS.SKIPPED, label: 'skipped' },
 ];
 
+export const DEFAULT_WORKOUT_STATUS = DEFAULT_SET_STATUS;
+export const WORKOUT_STATUS_OPTIONS = SET_STATUS_OPTIONS;
+
 /** PocketBase multi-select: в API приходит массив, напр. ["done"] */
 export function coerceStatusRaw(raw) {
   if (Array.isArray(raw)) return raw[0] ?? '';
@@ -23,7 +29,7 @@ export function coerceStatusRaw(raw) {
 
 /**
  * Нормализация для UI/draft: planned | done | failed | skipped.
- * Legacy: plan, completed, fail, skip и т.п.
+ * null / undefined / '' / [] → planned. Legacy: plan, completed, fail, skip.
  */
 export function normalizeSetStatus(raw) {
   const v = String(coerceStatusRaw(raw)).toLowerCase().trim();
@@ -47,7 +53,15 @@ export function normalizeSetStatus(raw) {
   }
 }
 
-/** Поле status для create/update в PocketBase (multi-select → массив) */
+export const normalizeWorkoutStatus = normalizeSetStatus;
+
+/** sets.status или workouts.workout_status → массив для PB multi-select */
 export function statusToPocketBase(value) {
   return [normalizeSetStatus(value)];
+}
+
+export const workoutStatusToPocketBase = statusToPocketBase;
+
+export function getWorkoutStatusForDisplay(workout) {
+  return normalizeWorkoutStatus(workout?.workout_status);
 }

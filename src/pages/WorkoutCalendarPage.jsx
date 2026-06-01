@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
+import { normalizeWorkoutStatus } from '../lib/setStatus';
 import { getActiveVariantExerciseName } from '../lib/workoutVariants';
 import MonthCalendar from '../components/workouts/MonthCalendar';
 import MonthCarousel from '../components/workouts/MonthCarousel';
@@ -81,6 +82,8 @@ function WorkoutCalendarPage() {
 
   const user = pb.authStore.model;
   const [exerciseNamesByDay, setExerciseNamesByDay] = useState({});
+  /** TODO: цвет ячейки календаря по workout_status */
+  const [workoutStatusByDay, setWorkoutStatusByDay] = useState({});
 
   useEffect(() => {
     let mounted = true;
@@ -104,13 +107,17 @@ function WorkoutCalendarPage() {
         if (!mounted) return;
         if (!workouts.length) {
           setExerciseNamesByDay({});
+          setWorkoutStatusByDay({});
           return;
         }
 
         const workoutDayKeyById = new Map();
+        const statusByDay = {};
         for (const w of workouts) {
           const dayKey = toDayKey(w.date);
-          if (dayKey) workoutDayKeyById.set(w.id, dayKey);
+          if (!dayKey) continue;
+          workoutDayKeyById.set(w.id, dayKey);
+          statusByDay[dayKey] = normalizeWorkoutStatus(w.workout_status);
         }
 
         const workoutIds = Array.from(workoutDayKeyById.keys());
@@ -162,10 +169,12 @@ function WorkoutCalendarPage() {
           obj[dayKey] = Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'));
         }
         setExerciseNamesByDay(obj);
+        setWorkoutStatusByDay(statusByDay);
       } catch (e) {
         console.error('Ошибка загрузки упражнений для календаря:', e);
         if (!mounted) return;
         setExerciseNamesByDay({});
+        setWorkoutStatusByDay({});
       }
     };
 
@@ -192,6 +201,7 @@ function WorkoutCalendarPage() {
               grid={grid}
               onDayClick={(dayKey) => setActiveDayKey(dayKey)}
               exerciseNamesByDay={exerciseNamesByDay}
+              workoutStatusByDay={workoutStatusByDay}
               maxLines={5}
             />
           </>

@@ -18,8 +18,12 @@ import ExerciseSourceTabs from '../components/exercises/ExerciseSourceTabs';
 import ExerciseVariantCarousel from '../components/workouts/ExerciseVariantCarousel';
 import {
   DEFAULT_SET_STATUS,
+  DEFAULT_WORKOUT_STATUS,
   normalizeSetStatus,
+  normalizeWorkoutStatus,
   SET_STATUS_OPTIONS,
+  WORKOUT_STATUS_OPTIONS,
+  workoutStatusToPocketBase,
 } from '../lib/setStatus';
 import styles from './WorkoutCalendarEditPage.module.css';
 
@@ -34,6 +38,7 @@ function WorkoutCalendarEditPage() {
 
   const [draftTitle, setDraftTitle] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
+  const [draftWorkoutStatus, setDraftWorkoutStatus] = useState(DEFAULT_WORKOUT_STATUS);
   const [draftExercises, setDraftExercises] = useState([]);
   const [openExerciseDropdown, setOpenExerciseDropdown] = useState(null);
   const {
@@ -79,6 +84,7 @@ function WorkoutCalendarEditPage() {
 
         setDraftTitle(w.title || '');
         setDraftNotes(w.notes || '');
+        setDraftWorkoutStatus(normalizeWorkoutStatus(w.workout_status));
         setDraftExercises(nextDraftExercises.length > 0 ? nextDraftExercises : [createEmptyBlock(1)]);
       } catch (e) {
         console.error('Ошибка загрузки тренировки для редактирования:', e);
@@ -256,6 +262,7 @@ function WorkoutCalendarEditPage() {
         {
           title: draftTitle,
           notes: draftNotes,
+          workout_status: workoutStatusToPocketBase(draftWorkoutStatus),
         },
         { requestKey: null }
       );
@@ -335,12 +342,26 @@ function WorkoutCalendarEditPage() {
                 <div className={styles.v}>{workout.date}</div>
               </div>
 
-              <input
-                className={styles.workoutTitleInput}
-                value={draftTitle}
-                onChange={(e) => setDraftTitle(e.target.value)}
-                placeholder="Workout name"
-              />
+              <div className={styles.workoutTitleRow}>
+                <input
+                  className={styles.workoutTitleInput}
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  placeholder="Workout name"
+                />
+                <select
+                  className={styles.workoutStatusSelect}
+                  value={normalizeWorkoutStatus(draftWorkoutStatus)}
+                  onChange={(e) => setDraftWorkoutStatus(e.target.value)}
+                  aria-label="Статус тренировки"
+                >
+                  {WORKOUT_STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <input
                 className={styles.workoutNotesInput}

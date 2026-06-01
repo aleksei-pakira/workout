@@ -2,7 +2,8 @@ import styles from './MonthCalendar.module.css';
 
 const WEEKDAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-function MonthCalendar({ grid, onDayClick, exerciseNamesByDay, maxLines = 3 }) {
+function MonthCalendar({ grid, onDayClick, exerciseNamesByDay, workoutStatusByDay, maxLines = 3 }) {
+  void workoutStatusByDay;
   const renderCellContent = (cell) => (
     <>
       <span className={styles.dayNum}>{cell.date.getDate()}</span>
