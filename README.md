@@ -68,6 +68,8 @@ npm run build
 - **PocketBase** — отдельно на VPS/сервере
 - Prod: `VITE_PB_URL` указывает на prod API
 
+**Nginx / 404 на `/workouts/calendar`:** для SPA нужен `try_files $uri $uri/ /index.html;` — см. **`docs/DEPLOY_NGINX.md`**.
+
 ## Ручное тестирование
 
 ### Создание

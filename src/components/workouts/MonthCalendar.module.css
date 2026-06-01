@@ -89,10 +89,29 @@
   background: var(--surface-muted);
   color: var(--muted-2);
   opacity: 0.7;
+  cursor: default;
 }
 
 .cellInMonth {
   opacity: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.cellInMonth:hover {
+  background: var(--surface-muted);
+}
+
+.cellInMonth:focus-visible {
+  outline: 2px solid rgba(206, 17, 38, 0.45);
+  outline-offset: 2px;
 }
 
 .cellToday {
@@ -104,11 +123,8 @@
   font-size: 13px;
   font-weight: 900;
   color: inherit;
-  border: 0;
-  background: transparent;
   padding: 0;
   text-align: left;
-  cursor: pointer;
 }
 
 .exerciseMiniList {

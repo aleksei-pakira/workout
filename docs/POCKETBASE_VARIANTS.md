@@ -21,9 +21,25 @@ workouts
 
 | Параметр | Значение |
 |----------|----------|
-| Type | Number, Required |
+| Type | Number |
+| **Required** | **нет (OFF)** |
 | Min / Max | `0` / `9` |
-| Default | `0` |
+
+> **Важно:** не включайте **Required** для этого поля. В PocketBase значение **`0`** («Основное») при Required часто даёт ошибку `Cannot be blank`. Frontend всегда отправляет `active_variant_index: 0` при create — поле будет заполнено и без Required.
+
+Поле **Default** в UI PocketBase может отсутствовать — это нормально.
+
+---
+
+## 1.1. `workout_exercise_variants.variant_index`
+
+| Параметр | Значение |
+|----------|----------|
+| Type | Number |
+| **Required** | **нет (OFF)** — та же причина: слот **0** = «Основное» |
+| Min / Max | `0` / `9` |
+
+Уникальность слотов обеспечивает **unique index** `(workout_exercise, variant_index)`, не Required.
 
 ---
 
@@ -33,7 +49,7 @@ workouts
 |-------|------|---------|
 | `workout_exercise` | Relation → `workout_exercises` | Max 1, Required, Cascade delete |
 | `exercise` | Relation → `exercises` | Max 1, Required |
-| `variant_index` | Number | Required, Min `0`, Max `9` |
+| `variant_index` | Number | Min `0`, Max `9`, **Required: OFF** (см. §1.1) |
 
 **Unique index:** `workout_exercise` + `variant_index`.
 
@@ -47,7 +63,7 @@ workouts
 | Required | да (после финализации) |
 | Cascade delete | да |
 
-После проверки frontend удалить legacy-поле `sets.workout_exercise`.
+Legacy-поле `sets.workout_exercise`: если удалить из схемы не удаётся — оставьте **Required: OFF**. Frontend пишет только `workout_exercise_variant`.
 
 ---
 
@@ -59,7 +75,7 @@ workouts
 
 | Rule | Выражение |
 |------|-----------|
-| List / View | `user = @request.auth.id` |
+| List / View | `user = @request.auth.id` |готово
 | Create | `@request.auth.id != "" && user = @request.auth.id` |
 | Update / Delete | `@request.auth.id != "" && user = @request.auth.id` |
 
@@ -112,6 +128,23 @@ node scripts/migrate-variants.mjs
 
 ## 7. Проверка в Admin
 
+- [ ] `active_variant_index = 0` сохраняется (Required OFF)
 - [ ] Variant 0 + 1 на один блок
 - [ ] Unique: два `variant_index=0` на блок → ошибка
 - [ ] Удаление `workout_exercises` → cascade variants + sets
+
+## 8. Проверка в приложении
+
+- [ ] Create: тренировка с «Основное» + подходы
+- [ ] Create: «Вариант 1» с другим упражнением и подходами
+- [ ] View: карусель, подходы, смена `active_variant_index`
+- [ ] Edit: сохранение без потери variant 0 / variant 1
+
+## 9. Частые ошибки
+
+| Ошибка | Причина | Решение |
+|--------|---------|---------|
+| `active_variant_index` Cannot be blank при `0` | Required ON на Number | Required **OFF** (§1) |
+| `workout_exercise` Cannot be blank в `sets` | Required ON на legacy-поле | Required OFF или удалить поле |
+| Invalid rule `workout_exercise` в `sets` | Поле удалено, rule ссылается на него | Rules только через `workout_exercise_variant` |
+| Create rule `@request.data` | Устаревший синтаксис | Использовать `@request.body` |
