@@ -16,16 +16,12 @@ import {
 } from '../lib/workoutVariants';
 import ExerciseSourceTabs from '../components/exercises/ExerciseSourceTabs';
 import ExerciseVariantCarousel from '../components/workouts/ExerciseVariantCarousel';
+import {
+  DEFAULT_SET_STATUS,
+  normalizeSetStatus,
+  SET_STATUS_OPTIONS,
+} from '../lib/setStatus';
 import styles from './WorkoutCalendarEditPage.module.css';
-
-function normalizeStatus(raw) {
-  if (!raw) return 'planned';
-  if (raw === 'plan') return 'planned';
-  if (raw === 'done') return 'completed';
-  if (raw === 'fail') return 'failed';
-  if (raw === 'planned' || raw === 'completed' || raw === 'failed' || raw === 'skipped') return raw;
-  return 'planned';
-}
 
 function WorkoutCalendarEditPage() {
   const { id } = useParams();
@@ -162,7 +158,7 @@ function WorkoutCalendarEditPage() {
         const sets = variant.sets || [];
         const nextSets = [
           ...sets,
-          { set_number: sets.length + 1, weight: '', reps: '', status: 'planned' },
+          { set_number: sets.length + 1, weight: '', reps: '', status: DEFAULT_SET_STATUS },
         ];
         return {
           ...withSlot,
@@ -461,15 +457,16 @@ function WorkoutCalendarEditPage() {
                             <div className={styles.cell}>
                               <select
                                 className={styles.statusSelect}
-                                value={normalizeStatus(s.status)}
+                                value={normalizeSetStatus(s.status)}
                                 onChange={(e) =>
                                   updateDraftSet(exIdx, activeVariantIndex, setIdx, 'status', e.target.value)
                                 }
                               >
-                                <option value="planned">planned</option>
-                                <option value="completed">completed</option>
-                                <option value="failed">failed</option>
-                                <option value="skipped">skipped</option>
+                                {SET_STATUS_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                             <button

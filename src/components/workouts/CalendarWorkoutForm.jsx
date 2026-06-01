@@ -17,18 +17,15 @@ import {
   saveBlockVariantsAndSets,
   setActiveVariantIndex,
 } from '../../lib/workoutVariants';
+import {
+  DEFAULT_SET_STATUS,
+  normalizeSetStatus,
+  SET_STATUS_OPTIONS,
+  statusToPocketBase,
+} from '../../lib/setStatus';
 import ExerciseSourceTabs from '../exercises/ExerciseSourceTabs';
 import ExerciseVariantCarousel from './ExerciseVariantCarousel';
 import styles from './CalendarWorkoutForm.module.css';
-
-function normalizeStatus(raw) {
-  if (!raw) return 'planned';
-  if (raw === 'plan') return 'planned';
-  if (raw === 'done') return 'completed';
-  if (raw === 'fail') return 'failed';
-  if (raw === 'planned' || raw === 'completed' || raw === 'failed' || raw === 'skipped') return raw;
-  return 'planned';
-}
 
 function getNextDayKey(dayKey) {
   const d = new Date(`${dayKey}T00:00:00`);
@@ -167,7 +164,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
         const sets = variant.sets || [];
         const nextSets = [
           ...sets,
-          { set_number: sets.length + 1, weight: '', reps: '', status: 'planned' },
+          { set_number: sets.length + 1, weight: '', reps: '', status: DEFAULT_SET_STATUS },
         ];
         return {
           ...withSlot,
@@ -376,15 +373,17 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   };
 
   const updateSetStatus = async (variantId, setId, nextStatus) => {
-    const normalizedNext = normalizeStatus(nextStatus);
+    if (!setId) return;
 
-    let prevStatus = 'planned';
+    const normalizedNext = normalizeSetStatus(nextStatus);
+
+    let prevStatus = DEFAULT_SET_STATUS;
     setViewBlocks((prev) =>
       prev.map((block) => {
         const sets = block.setsByVariantId[variantId];
         if (!sets) return block;
         const prevSet = sets.find((s) => s.id === setId);
-        if (prevSet) prevStatus = normalizeStatus(prevSet.status);
+        if (prevSet) prevStatus = normalizeSetStatus(prevSet.status);
 
         return {
           ...block,
@@ -399,7 +398,11 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
     );
 
     try {
-      await pb.collection('sets').update(setId, { status: normalizedNext }, { requestKey: null });
+      await pb.collection('sets').update(
+        setId,
+        { status: statusToPocketBase(normalizedNext) },
+        { requestKey: null }
+      );
     } catch (e) {
       console.error('Ошибка обновления статуса подхода:', e);
       setWorkoutDataError('Не удалось сохранить статус');
@@ -555,7 +558,21 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                               inputMode="numeric"
                             />
                           </div>
-                          <div className={styles.cell}>{s.status}</div>
+                          <div className={styles.cell}>
+                            <select
+                              className={styles.statusSelect}
+                              value={normalizeSetStatus(s.status)}
+                              onChange={(e) =>
+                                updateDraftSet(exIdx, activeVariantIndex, setIdx, 'status', e.target.value)
+                              }
+                            >
+                              {SET_STATUS_OPTIONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                           <button
                             type="button"
                             className={styles.removeSetBtn}
@@ -685,7 +702,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                             <div className={styles.noSets}>Пока нет подходов</div>
                           ) : (
                             sets.map((s) => {
-                              const statusValue = normalizeStatus(s.status);
+                              const statusValue = normalizeSetStatus(s.status);
 
                               return (
                                 <div key={s.id} className={styles.setRow}>
@@ -695,15 +712,16 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                                     <select
                                       className={styles.statusSelect}
                                       value={statusValue}
+                                      disabled={!s.id}
                                       onChange={(e) => {
-                                        if (!activeVariant?.id) return;
                                         updateSetStatus(activeVariant.id, s.id, e.target.value);
                                       }}
                                     >
-                                      <option value="planned">plan</option>
-                                      <option value="completed">done</option>
-                                      <option value="failed">fail</option>
-                                      <option value="skipped">skip</option>
+                                      {SET_STATUS_OPTIONS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>
+                                          {opt.label}
+                                        </option>
+                                      ))}
                                     </select>
                                   </div>
                                 </div>

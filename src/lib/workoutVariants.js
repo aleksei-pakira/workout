@@ -1,4 +1,5 @@
 import pb from './pocketbase';
+import { normalizeSetStatus, statusToPocketBase } from './setStatus';
 import {
   MAIN_VARIANT_INDEX,
   EMPTY_SET_ROW,
@@ -6,21 +7,12 @@ import {
   getVariantExerciseName,
 } from './workoutVariantConstants';
 
-function normalizeStatus(raw) {
-  if (!raw) return 'planned';
-  if (raw === 'plan') return 'planned';
-  if (raw === 'done') return 'completed';
-  if (raw === 'fail') return 'failed';
-  if (raw === 'planned' || raw === 'completed' || raw === 'failed' || raw === 'skipped') return raw;
-  return 'planned';
-}
-
 function draftSetFromApi(setRecord) {
   return {
     set_number: setRecord.set_number,
     weight: String(setRecord.weight ?? ''),
     reps: String(setRecord.reps ?? ''),
-    status: normalizeStatus(setRecord.status),
+    status: normalizeSetStatus(setRecord.status),
   };
 }
 
@@ -254,7 +246,7 @@ export async function saveBlockVariantsAndSets({ workoutId, blockDraft, orderInd
               set_number: i + 1,
               weight: Number(s.weight) || 0,
               reps: Number(s.reps) || 0,
-              status: normalizeStatus(s.status),
+              status: statusToPocketBase(s.status),
             },
             { requestKey: null }
           )

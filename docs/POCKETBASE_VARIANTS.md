@@ -65,6 +65,18 @@ workouts
 
 Legacy-поле `sets.workout_exercise`: если удалить из схемы не удаётся — оставьте **Required: OFF**. Frontend пишет только `workout_exercise_variant`.
 
+### 3.1. `sets.status`
+
+| Параметр | Значение |
+|----------|----------|
+| Type | Select (рекомендуется **single**; если multiple — max 1) |
+| Values | **`planned`**, **`done`**, **`failed`**, **`skipped`** |
+| Default | `planned` |
+
+> Не используйте `completed` — фронт пишет **`done`**. Старые `completed` при чтении мапятся в `done`.
+
+API (multi-select): в ответе может быть `"status": ["done"]`. При create/update фронт отправляет массив из одного значения, напр. `["planned"]`.
+
 ---
 
 ## 4. API Rules
@@ -145,6 +157,7 @@ node scripts/migrate-variants.mjs
 | Ошибка | Причина | Решение |
 |--------|---------|---------|
 | `active_variant_index` Cannot be blank при `0` | Required ON на Number | Required **OFF** (§1) |
+| Статус в UI сбрасывается / не сохраняется | PB отдаёт `["completed"]` или short `plan` | Values в PB: `planned`, `done`, `failed`, `skipped` (§3.1) |
 | `workout_exercise` Cannot be blank в `sets` | Required ON на legacy-поле | Required OFF или удалить поле |
 | Invalid rule `workout_exercise` в `sets` | Поле удалено, rule ссылается на него | Rules только через `workout_exercise_variant` |
 | Create rule `@request.data` | Устаревший синтаксис | Использовать `@request.body` |
