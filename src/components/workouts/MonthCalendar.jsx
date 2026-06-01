@@ -2,8 +2,22 @@ import styles from './MonthCalendar.module.css';
 
 const WEEKDAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
+function getWorkoutStatusCellClass(status, styleModule) {
+  switch (status) {
+    case 'done':
+      return styleModule.cellStatusDone;
+    case 'failed':
+      return styleModule.cellStatusFailed;
+    case 'skipped':
+      return styleModule.cellStatusSkipped;
+    case 'planned':
+      return styleModule.cellStatusPlanned;
+    default:
+      return '';
+  }
+}
+
 function MonthCalendar({ grid, onDayClick, exerciseNamesByDay, workoutStatusByDay, maxLines = 3 }) {
-  void workoutStatusByDay;
   const renderCellContent = (cell) => (
     <>
       <span className={styles.dayNum}>{cell.date.getDate()}</span>
@@ -38,9 +52,16 @@ function MonthCalendar({ grid, onDayClick, exerciseNamesByDay, workoutStatusByDa
 
       <div className={styles.grid}>
         {grid.map((cell) => {
+          const workoutStatus =
+            cell.inMonth && workoutStatusByDay && cell.dayKey in workoutStatusByDay
+              ? workoutStatusByDay[cell.dayKey]
+              : null;
+          const statusClass = workoutStatus ? getWorkoutStatusCellClass(workoutStatus, styles) : '';
+
           const cellClassName = [
             styles.cell,
             cell.inMonth ? styles.cellInMonth : styles.cellOutMonth,
+            statusClass,
             cell.isToday ? styles.cellToday : '',
           ]
             .filter(Boolean)
@@ -54,6 +75,7 @@ function MonthCalendar({ grid, onDayClick, exerciseNamesByDay, workoutStatusByDa
                 className={cellClassName}
                 onClick={() => onDayClick?.(cell.dayKey)}
                 aria-label={`Тренировка ${cell.dayKey}`}
+                data-workout-status={workoutStatus || undefined}
               >
                 {renderCellContent(cell)}
               </button>

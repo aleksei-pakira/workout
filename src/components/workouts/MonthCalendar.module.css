@@ -114,6 +114,46 @@
   outline-offset: 2px;
 }
 
+.cellStatusPlanned {
+  background: var(--bg-tertiary, #eeeeee);
+  border-color: var(--border-color, #dddddd);
+}
+
+.cellStatusDone {
+  background: var(--success-light, #a5d6a7);
+  border-color: var(--success-dark, #2e7d32);
+}
+
+.cellStatusFailed {
+  background: var(--danger-light, #ffcdd2);
+  border-color: var(--danger-dark, #d32f2f);
+}
+
+.cellStatusSkipped {
+  background: var(--warning-light, #ffe0b2);
+  border-color: var(--warning-dark, #ed6c02);
+}
+
+.cellInMonth.cellStatusPlanned:hover {
+  filter: brightness(0.97);
+  background: var(--bg-tertiary, #eeeeee);
+}
+
+.cellInMonth.cellStatusDone:hover {
+  filter: brightness(0.97);
+  background: var(--success-light, #a5d6a7);
+}
+
+.cellInMonth.cellStatusFailed:hover {
+  filter: brightness(0.97);
+  background: var(--danger-light, #ffcdd2);
+}
+
+.cellInMonth.cellStatusSkipped:hover {
+  filter: brightness(0.97);
+  background: var(--warning-light, #ffe0b2);
+}
+
 .cellToday {
   border-color: rgba(206, 17, 38, 0.35);
   box-shadow: 0 0 0 3px rgba(206, 17, 38, 0.10);

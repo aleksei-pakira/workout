@@ -102,6 +102,8 @@ API (multi-select): в ответе может быть `"status": ["done"]`. П
 
 Фронт при create/update всегда отправляет `workout_status: ["planned"]` и т.д. Пустое поле в API → отображение `planned`.
 
+Цвет ячейки в календаре (`MonthCalendar`) берётся из `workout_status`, **не** из `sets.status`.
+
 ### `workout_exercises`
 
 | Rule | Выражение |

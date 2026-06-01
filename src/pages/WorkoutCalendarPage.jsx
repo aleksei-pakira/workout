@@ -82,7 +82,6 @@ function WorkoutCalendarPage() {
 
   const user = pb.authStore.model;
   const [exerciseNamesByDay, setExerciseNamesByDay] = useState({});
-  /** TODO: цвет ячейки календаря по workout_status */
   const [workoutStatusByDay, setWorkoutStatusByDay] = useState({});
 
   useEffect(() => {
