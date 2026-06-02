@@ -83,6 +83,7 @@
   min-height: 0;
   overflow: hidden;
   contain: layout paint;
+  position: relative;
 }
 
 .cellOutMonth {
@@ -157,6 +158,31 @@
 .cellToday {
   border-color: rgba(206, 17, 38, 0.35);
   box-shadow: 0 0 0 3px rgba(206, 17, 38, 0.10);
+}
+
+.cellSelected {
+  outline: 2px solid rgba(206, 17, 38, 0.45);
+  outline-offset: -2px;
+}
+
+.copyBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  border: 1px solid var(--border-color, #dddddd);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--text-secondary, #666);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 8px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.copyBtn:hover {
+  background: var(--surface-muted, #f8fafc);
 }
 
 .dayNum {

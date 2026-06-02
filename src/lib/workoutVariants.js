@@ -1,5 +1,6 @@
 import pb from './pocketbase';
 import { normalizeSetStatus, statusToPocketBase } from './setStatus';
+import { normalizeWorkoutStatus, workoutStatusToPocketBase } from './setStatus';
 import {
   MAIN_VARIANT_INDEX,
   EMPTY_SET_ROW,
@@ -283,4 +284,98 @@ export async function syncWorkoutBlocksFromDraft({ workoutId, draftBlocks }) {
       })
     )
   );
+}
+
+export function sanitizeBlockDraftForCopy(blockDraft) {
+  const nextVariants = {};
+  for (const [k, v] of Object.entries(blockDraft.variants || {})) {
+    const variantIndex = Number(k);
+    nextVariants[variantIndex] = {
+      variantIndex,
+      exerciseId: v?.exerciseId ?? null,
+      exerciseName: v?.exerciseName || '',
+      sets: (v?.sets || []).map((s, i) => ({
+        set_number: Number(s?.set_number) || i + 1,
+        weight: String(s?.weight ?? ''),
+        reps: String(s?.reps ?? ''),
+        status: normalizeSetStatus(s?.status),
+      })),
+    };
+  }
+
+  return {
+    workoutExerciseId: null,
+    orderIndex: Number(blockDraft.orderIndex) || 1,
+    activeVariantIndex: blockDraft.activeVariantIndex ?? MAIN_VARIANT_INDEX,
+    variants: nextVariants,
+  };
+}
+
+export async function loadWorkoutDraftFromApi(workoutId) {
+  const workout = await pb.collection('workouts').getOne(workoutId, { requestKey: null });
+  const { blocks } = await loadWorkoutBlocks(workoutId);
+  const exercises = blocks.map((block) =>
+    sanitizeBlockDraftForCopy(
+      normalizeBlockDraftFromApi(block.we, block.variants, block.setsByVariantId)
+    )
+  );
+
+  return {
+    title: workout?.title || '',
+    notes: workout?.notes || '',
+    workoutStatus: normalizeWorkoutStatus(workout?.workout_status),
+    exercises,
+  };
+}
+
+function getNextDayKey(dayKey) {
+  const d = new Date(`${dayKey}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setDate(d.getDate() + 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export async function pasteWorkoutDraftToDay({ userId, dayKey, draft, existingWorkoutIds }) {
+  if (!userId) throw new Error('Missing userId');
+  if (!dayKey) throw new Error('Missing dayKey');
+  if (!draft) throw new Error('Missing draft');
+
+  const idsToDelete = Array.isArray(existingWorkoutIds)
+    ? existingWorkoutIds.filter(Boolean)
+    : existingWorkoutIds
+      ? [existingWorkoutIds]
+      : [];
+
+  if (idsToDelete.length > 0) {
+    await Promise.all(
+      idsToDelete.map((id) => pb.collection('workouts').delete(id, { requestKey: null }))
+    );
+  }
+
+  const workout = await pb.collection('workouts').create(
+    {
+      user: userId,
+      date: dayKey,
+      title: draft.title || '',
+      notes: draft.notes || '',
+      workout_status: workoutStatusToPocketBase(draft.workoutStatus),
+    },
+    { requestKey: null }
+  );
+
+  const blocks = Array.isArray(draft.exercises) ? draft.exercises : [];
+  await Promise.all(
+    blocks.map((block, idx) =>
+      saveBlockVariantsAndSets({
+        workoutId: workout.id,
+        blockDraft: block,
+        orderIndex: idx + 1,
+      })
+    )
+  );
+
+  return workout?.id || null;
 }

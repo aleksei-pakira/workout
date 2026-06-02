@@ -17,7 +17,18 @@ function getWorkoutStatusCellClass(status, styleModule) {
   }
 }
 
-function MonthCalendar({ grid, onDayClick, exerciseNamesByDay, workoutStatusByDay, maxLines = 3 }) {
+function MonthCalendar({
+  grid,
+  onDayClick,
+  exerciseNamesByDay,
+  workoutStatusByDay,
+  workoutIdByDay,
+  pasteMode,
+  selectedDayKeys,
+  onToggleDay,
+  onCopyDay,
+  maxLines = 3,
+}) {
   const renderCellContent = (cell) => (
     <>
       <span className={styles.dayNum}>{cell.date.getDate()}</span>
@@ -57,11 +68,14 @@ function MonthCalendar({ grid, onDayClick, exerciseNamesByDay, workoutStatusByDa
               ? workoutStatusByDay[cell.dayKey]
               : null;
           const statusClass = workoutStatus ? getWorkoutStatusCellClass(workoutStatus, styles) : '';
+          const isSelected = Boolean(cell.inMonth && selectedDayKeys?.has?.(cell.dayKey));
+          const hasWorkout = Boolean(cell.inMonth && workoutIdByDay?.[cell.dayKey]);
 
           const cellClassName = [
             styles.cell,
             cell.inMonth ? styles.cellInMonth : styles.cellOutMonth,
             statusClass,
+            isSelected ? styles.cellSelected : '',
             cell.isToday ? styles.cellToday : '',
           ]
             .filter(Boolean)
@@ -73,10 +87,38 @@ function MonthCalendar({ grid, onDayClick, exerciseNamesByDay, workoutStatusByDa
                 key={cell.dayKey}
                 type="button"
                 className={cellClassName}
-                onClick={() => onDayClick?.(cell.dayKey)}
+                onClick={() => {
+                  if (pasteMode) {
+                    onToggleDay?.(cell.dayKey);
+                    return;
+                  }
+                  onDayClick?.(cell.dayKey);
+                }}
                 aria-label={`Тренировка ${cell.dayKey}`}
                 data-workout-status={workoutStatus || undefined}
               >
+                {hasWorkout ? (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className={styles.copyBtn}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCopyDay?.(cell.dayKey);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onCopyDay?.(cell.dayKey);
+                      }
+                    }}
+                    aria-label="Copy workout"
+                    title="Copy workout"
+                  >
+                    Copy
+                  </span>
+                ) : null}
                 {renderCellContent(cell)}
               </button>
             );

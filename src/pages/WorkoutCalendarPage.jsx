@@ -3,7 +3,11 @@ import { useSearchParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
 import { normalizeWorkoutStatus } from '../lib/setStatus';
-import { getActiveVariantExerciseName } from '../lib/workoutVariants';
+import {
+  getActiveVariantExerciseName,
+  loadWorkoutDraftFromApi,
+  pasteWorkoutDraftToDay,
+} from '../lib/workoutVariants';
 import MonthCalendar from '../components/workouts/MonthCalendar';
 import MonthCarousel from '../components/workouts/MonthCarousel';
 import CalendarWorkoutForm from '../components/workouts/CalendarWorkoutForm';
@@ -83,6 +87,16 @@ function WorkoutCalendarPage() {
   const user = pb.authStore.model;
   const [exerciseNamesByDay, setExerciseNamesByDay] = useState({});
   const [workoutStatusByDay, setWorkoutStatusByDay] = useState({});
+  const [workoutIdByDay, setWorkoutIdByDay] = useState({});
+
+  // Clipboard + batch paste selection
+  const [workoutClipboard, setWorkoutClipboard] = useState(null); // { title, notes, workoutStatus, exercises } | null
+  const [selectedDayKeys, setSelectedDayKeys] = useState(() => new Set());
+  const [pasting, setPasting] = useState(false);
+  const [pasteProgress, setPasteProgress] = useState({ done: 0, total: 0 });
+  const [pasteErrors, setPasteErrors] = useState([]); // Array<{ dayKey, message }>
+
+  const pasteMode = Boolean(workoutClipboard);
 
   useEffect(() => {
     let mounted = true;
@@ -107,16 +121,19 @@ function WorkoutCalendarPage() {
         if (!workouts.length) {
           setExerciseNamesByDay({});
           setWorkoutStatusByDay({});
+          setWorkoutIdByDay({});
           return;
         }
 
         const workoutDayKeyById = new Map();
         const statusByDay = {};
+        const idByDay = {};
         for (const w of workouts) {
           const dayKey = toDayKey(w.date);
           if (!dayKey) continue;
           workoutDayKeyById.set(w.id, dayKey);
           statusByDay[dayKey] = normalizeWorkoutStatus(w.workout_status);
+          idByDay[dayKey] = w.id;
         }
 
         const workoutIds = Array.from(workoutDayKeyById.keys());
@@ -169,11 +186,13 @@ function WorkoutCalendarPage() {
         }
         setExerciseNamesByDay(obj);
         setWorkoutStatusByDay(statusByDay);
+        setWorkoutIdByDay(idByDay);
       } catch (e) {
         console.error('Ошибка загрузки упражнений для календаря:', e);
         if (!mounted) return;
         setExerciseNamesByDay({});
         setWorkoutStatusByDay({});
+        setWorkoutIdByDay({});
       }
     };
 
@@ -182,6 +201,121 @@ function WorkoutCalendarPage() {
       mounted = false;
     };
   }, [user?.id, grid, calendarReloadKey, r]);
+
+  const clearClipboard = () => {
+    setWorkoutClipboard(null);
+    setSelectedDayKeys(new Set());
+    setPasteErrors([]);
+    setPasteProgress({ done: 0, total: 0 });
+  };
+
+  const clearSelection = () => {
+    setSelectedDayKeys(new Set());
+    setPasteErrors([]);
+    setPasteProgress({ done: 0, total: 0 });
+  };
+
+  const toggleSelectedDay = (dayKey) => {
+    if (!dayKey) return;
+    setSelectedDayKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(dayKey)) next.delete(dayKey);
+      else next.add(dayKey);
+      return next;
+    });
+  };
+
+  const handleCopyDay = async (dayKey) => {
+    const workoutId = workoutIdByDay?.[dayKey];
+    if (!workoutId) return;
+    if (!user?.id) return;
+
+    try {
+      setPasteErrors([]);
+      const draft = await loadWorkoutDraftFromApi(workoutId);
+      setWorkoutClipboard(draft);
+      setSelectedDayKeys(new Set());
+    } catch (e) {
+      console.error('Ошибка копирования тренировки:', e);
+      setPasteErrors([{ dayKey, message: 'Не удалось скопировать тренировку' }]);
+    }
+  };
+
+  const applyPasteSelectedDays = async () => {
+    if (!user?.id) return;
+    if (!workoutClipboard) return;
+
+    const dayKeys = Array.from(selectedDayKeys || []).filter(Boolean).sort();
+    if (dayKeys.length === 0) return;
+
+    const ok = window.confirm(`Перезаписать тренировки в ${dayKeys.length} дней?`);
+    if (!ok) return;
+
+    const concurrency = 8;
+
+    setPasting(true);
+    setPasteErrors([]);
+    setPasteProgress({ done: 0, total: dayKeys.length });
+
+    // Preload existing workouts for selected range (to avoid per-day list calls)
+    const minDay = dayKeys[0];
+    const maxDay = dayKeys[dayKeys.length - 1];
+
+    let existingByDay = {};
+    try {
+      const existing = await pb.collection('workouts').getFullList({
+        filter: `user = "${user.id}" && date >= "${minDay}" && date <= "${maxDay}"`,
+        sort: '-date',
+        requestKey: null,
+      });
+
+      for (const w of existing || []) {
+        const dk = toDayKey(w.date);
+        if (!dk) continue;
+        if (!existingByDay[dk]) existingByDay[dk] = [];
+        existingByDay[dk].push(w.id);
+      }
+    } catch (e) {
+      console.error('Ошибка предзагрузки тренировок для перезаписи:', e);
+      // continue with empty map; paste fn will still work, but may fail if day already has workout uniqueness
+      existingByDay = {};
+    }
+
+    const errors = [];
+    let idx = 0;
+
+    const worker = async () => {
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const current = dayKeys[idx];
+        idx += 1;
+        if (!current) return;
+
+        try {
+          await pasteWorkoutDraftToDay({
+            userId: user.id,
+            dayKey: current,
+            draft: workoutClipboard,
+            existingWorkoutIds: existingByDay[current] || [],
+          });
+        } catch (e) {
+          console.error('Ошибка вставки тренировки:', current, e);
+          errors.push({ dayKey: current, message: e?.message || 'Не удалось вставить тренировку' });
+        } finally {
+          setPasteProgress((p) => ({ ...p, done: p.done + 1 }));
+        }
+      }
+    };
+
+    try {
+      await Promise.all(Array.from({ length: concurrency }, () => worker()));
+      setPasteErrors(errors);
+      setCalendarReloadKey((x) => x + 1);
+      setSelectedDayKeys(new Set());
+    } finally {
+      setPasting(false);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -195,12 +329,61 @@ function WorkoutCalendarPage() {
           />
         ) : (
           <>
+            {pasteMode ? (
+              <div className={styles.clipboardBanner} role="region" aria-label="Clipboard">
+                <div className={styles.bannerTitle}>
+                  Буфер: <b>{workoutClipboard?.title || 'Тренировка'}</b>
+                </div>
+                <div className={styles.bannerMeta}>Выбрано: {selectedDayKeys.size}</div>
+                <div className={styles.bannerActions}>
+                  <button
+                    type="button"
+                    className={styles.bannerBtnPrimary}
+                    onClick={applyPasteSelectedDays}
+                    disabled={pasting || selectedDayKeys.size === 0}
+                  >
+                    Вставить в {selectedDayKeys.size}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.bannerBtn}
+                    onClick={clearSelection}
+                    disabled={pasting || selectedDayKeys.size === 0}
+                  >
+                    Очистить выбор
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.bannerBtn}
+                    onClick={clearClipboard}
+                    disabled={pasting}
+                  >
+                    Отмена
+                  </button>
+                </div>
+                {pasting ? (
+                  <div className={styles.bannerProgress}>
+                    Готово {pasteProgress.done} / {pasteProgress.total}
+                  </div>
+                ) : null}
+                {!pasting && pasteErrors.length ? (
+                  <div className={styles.bannerError}>
+                    Ошибки: {pasteErrors.length}. Проверьте консоль и попробуйте ещё раз.
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <MonthCarousel selectedMonthKey={selectedMonthKey} onSelectMonth={setSelectedMonthKey} />
             <MonthCalendar
               grid={grid}
               onDayClick={(dayKey) => setActiveDayKey(dayKey)}
               exerciseNamesByDay={exerciseNamesByDay}
               workoutStatusByDay={workoutStatusByDay}
+              workoutIdByDay={workoutIdByDay}
+              pasteMode={pasteMode}
+              selectedDayKeys={selectedDayKeys}
+              onToggleDay={toggleSelectedDay}
+              onCopyDay={handleCopyDay}
               maxLines={5}
             />
           </>
