@@ -172,6 +172,27 @@
   white-space: nowrap;
 }
 
+.exerciseVolume {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border, #e2e8f0);
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--muted, #555);
+  text-align: right;
+}
+
+.workoutVolumeTotal {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  background: var(--surface-muted, #f8fafc);
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text, #111);
+  text-align: right;
+}
+
 .exerciseBlock {
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 8px;

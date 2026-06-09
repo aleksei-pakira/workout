@@ -27,6 +27,13 @@ import {
   WORKOUT_STATUS_OPTIONS,
   workoutStatusToPocketBase,
 } from '../../lib/setStatus';
+import {
+  calcExerciseVolumeFromBlock,
+  calcExerciseVolumeFromDraftBlock,
+  calcWorkoutVolumeFromBlocks,
+  calcWorkoutVolumeFromDraft,
+  formatWorkoutVolume,
+} from '../../lib/workoutVolume';
 import ExerciseSourceTabs from '../exercises/ExerciseSourceTabs';
 import ExerciseVariantCarousel from './ExerciseVariantCarousel';
 import styles from './CalendarWorkoutForm.module.css';
@@ -41,7 +48,7 @@ function getNextDayKey(dayKey) {
   return `${y}-${m}-${day}`;
 }
 
-function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
+function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }) {
   const user = pb.authStore.model;
   const navigate = useNavigate();
 
@@ -318,6 +325,16 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
   const [viewBlocks, setViewBlocks] = useState([]);
   const [activeVariantByWeId, setActiveVariantByWeId] = useState({});
 
+  const workoutVolume = useMemo(
+    () => calcWorkoutVolumeFromBlocks(viewBlocks),
+    [viewBlocks]
+  );
+
+  const draftWorkoutVolume = useMemo(
+    () => calcWorkoutVolumeFromDraft(draftExercises),
+    [draftExercises]
+  );
+
   useEffect(() => {
     let mounted = true;
 
@@ -386,12 +403,14 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
         { workout_status: workoutStatusToPocketBase(normalizedNext) },
         { requestKey: null }
       );
+      onWorkoutStatusChange?.(dayKey, normalizedNext);
     } catch (e) {
       console.error('Ошибка обновления статуса тренировки:', e);
       setWorkoutDataError('Не удалось сохранить статус тренировки');
       setDayWorkouts(prevWorkouts.map((w) =>
         w.id === workoutId ? { ...w, workout_status: workoutStatusToPocketBase(prevStatus) } : w
       ));
+      onWorkoutStatusChange?.(dayKey, prevStatus);
     } finally {
       setWorkoutStatusSaving(false);
     }
@@ -646,9 +665,17 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                         + Добавить подход
                       </button>
                     </div>
+
+                    <div className={styles.exerciseVolume}>
+                      Объём: {formatWorkoutVolume(calcExerciseVolumeFromDraftBlock(exBlock))} кг
+                    </div>
                   </div>
                 );
               })}
+
+              <div className={styles.workoutVolumeTotal}>
+                Итого: {formatWorkoutVolume(draftWorkoutVolume)} кг
+              </div>
 
               <div className={styles.createFooter}>
                 <button
@@ -799,11 +826,21 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved }) {
                             })
                           )}
                         </div>
+
+                        <div className={styles.exerciseVolume}>
+                          Объём: {formatWorkoutVolume(calcExerciseVolumeFromBlock(block))} кг
+                        </div>
                       </div>
                     );
                   })}
                 </div>
               )}
+
+              {!loadingWorkoutData && !workoutDataError && viewBlocks.length > 0 ? (
+                <div className={styles.workoutVolumeTotal}>
+                  Итого: {formatWorkoutVolume(workoutVolume)} кг
+                </div>
+              ) : null}
             </div>
           )}
         </div>

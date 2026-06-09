@@ -165,11 +165,17 @@
   outline-offset: -2px;
 }
 
+.cellHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
 .copyBtn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 2;
+  flex: 0 0 auto;
   border: 1px solid var(--border-color, #dddddd);
   border-radius: 999px;
   background: var(--surface, #fff);
@@ -186,6 +192,7 @@
 }
 
 .dayNum {
+  flex: 0 0 auto;
   font-size: 13px;
   font-weight: 900;
   color: inherit;
@@ -193,8 +200,50 @@
   text-align: left;
 }
 
+.cellMain {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workoutTitleMini {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  padding-right: 2px;
+}
+
+.cellVolume {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: right;
+  color: inherit;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cellStatusDone .cellVolume {
+  border-top-color: rgba(46, 125, 50, 0.25);
+}
+
 .exerciseMiniList {
-  margin-top: 6px;
+  margin-top: 4px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -228,8 +277,9 @@
     padding: 6px;
   }
 
-  .exerciseMiniList {
-    margin-top: 4px;
+  .copyBtn {
+    font-size: 10px;
+    padding: 3px 6px;
   }
 }
 

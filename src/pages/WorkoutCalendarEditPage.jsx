@@ -25,6 +25,11 @@ import {
   WORKOUT_STATUS_OPTIONS,
   workoutStatusToPocketBase,
 } from '../lib/setStatus';
+import {
+  calcExerciseVolumeFromDraftBlock,
+  calcWorkoutVolumeFromDraft,
+  formatWorkoutVolume,
+} from '../lib/workoutVolume';
 import styles from './WorkoutCalendarEditPage.module.css';
 
 function WorkoutCalendarEditPage() {
@@ -53,6 +58,11 @@ function WorkoutCalendarEditPage() {
   const [saveError, setSaveError] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+
+  const draftWorkoutVolume = useMemo(
+    () => calcWorkoutVolumeFromDraft(draftExercises),
+    [draftExercises]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -510,10 +520,20 @@ function WorkoutCalendarEditPage() {
                           + Добавить подход
                         </button>
                       </div>
+
+                      <div className={styles.exerciseVolume}>
+                        Объём: {formatWorkoutVolume(calcExerciseVolumeFromDraftBlock(exBlock))} кг
+                      </div>
                     </div>
                   );
                 })
               )}
+
+              {draftExercises.length > 0 ? (
+                <div className={styles.workoutVolumeTotal}>
+                  Итого: {formatWorkoutVolume(draftWorkoutVolume)} кг
+                </div>
+              ) : null}
 
               <div className={styles.footer}>
                 <button type="button" className={styles.addExerciseBtn} onClick={addDraftExercise}>

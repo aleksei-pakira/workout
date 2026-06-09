@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
 import { normalizeWorkoutStatus } from '../lib/setStatus';
+import { aggregateVolumeByDayKey } from '../lib/workoutVolume';
 import {
   getActiveVariantExerciseName,
   loadWorkoutDraftFromApi,
@@ -88,6 +89,8 @@ function WorkoutCalendarPage() {
   const [exerciseNamesByDay, setExerciseNamesByDay] = useState({});
   const [workoutStatusByDay, setWorkoutStatusByDay] = useState({});
   const [workoutIdByDay, setWorkoutIdByDay] = useState({});
+  const [workoutTitleByDay, setWorkoutTitleByDay] = useState({});
+  const [workoutVolumeByDay, setWorkoutVolumeByDay] = useState({});
 
   // Clipboard + batch paste selection
   const [workoutClipboard, setWorkoutClipboard] = useState(null); // { title, notes, workoutStatus, exercises } | null
@@ -122,18 +125,22 @@ function WorkoutCalendarPage() {
           setExerciseNamesByDay({});
           setWorkoutStatusByDay({});
           setWorkoutIdByDay({});
+          setWorkoutTitleByDay({});
+          setWorkoutVolumeByDay({});
           return;
         }
 
         const workoutDayKeyById = new Map();
         const statusByDay = {};
         const idByDay = {};
+        const titleByDay = {};
         for (const w of workouts) {
           const dayKey = toDayKey(w.date);
           if (!dayKey) continue;
           workoutDayKeyById.set(w.id, dayKey);
           statusByDay[dayKey] = normalizeWorkoutStatus(w.workout_status);
           idByDay[dayKey] = w.id;
+          titleByDay[dayKey] = (w.title || '').trim() || 'Тренировка';
         }
 
         const workoutIds = Array.from(workoutDayKeyById.keys());
@@ -148,21 +155,47 @@ function WorkoutCalendarPage() {
 
         const weIds = wes.map((we) => we.id);
         let variantsByWeId = {};
+        let allVariants = [];
 
         if (weIds.length > 0) {
           const weFilter = weIds.map((weId) => `workout_exercise = "${weId}"`).join(' || ');
-          const variants = await pb.collection('workout_exercise_variants').getFullList({
+          allVariants = await pb.collection('workout_exercise_variants').getFullList({
             filter: weFilter,
             expand: 'exercise',
             sort: 'variant_index',
             requestKey: null,
           });
 
-          for (const v of variants) {
+          for (const v of allVariants) {
             const weId = v.workout_exercise;
             if (!variantsByWeId[weId]) variantsByWeId[weId] = [];
             variantsByWeId[weId].push(v);
           }
+        }
+
+        const weIdToDayKey = {};
+        for (const we of wes) {
+          const dayKey = workoutDayKeyById.get(we.workout);
+          if (dayKey) weIdToDayKey[we.id] = dayKey;
+        }
+
+        const variantIdToDayKey = {};
+        for (const v of allVariants) {
+          const dayKey = weIdToDayKey[v.workout_exercise];
+          if (dayKey) variantIdToDayKey[v.id] = dayKey;
+        }
+
+        let volumeByDay = {};
+        const variantIds = allVariants.map((v) => v.id);
+        if (variantIds.length > 0) {
+          const variantFilter = variantIds
+            .map((id) => `workout_exercise_variant = "${id}"`)
+            .join(' || ');
+          const sets = await pb.collection('sets').getFullList({
+            filter: variantFilter,
+            requestKey: null,
+          });
+          volumeByDay = aggregateVolumeByDayKey(sets, variantIdToDayKey);
         }
 
         if (!mounted) return;
@@ -187,12 +220,16 @@ function WorkoutCalendarPage() {
         setExerciseNamesByDay(obj);
         setWorkoutStatusByDay(statusByDay);
         setWorkoutIdByDay(idByDay);
+        setWorkoutTitleByDay(titleByDay);
+        setWorkoutVolumeByDay(volumeByDay);
       } catch (e) {
         console.error('Ошибка загрузки упражнений для календаря:', e);
         if (!mounted) return;
         setExerciseNamesByDay({});
         setWorkoutStatusByDay({});
         setWorkoutIdByDay({});
+        setWorkoutTitleByDay({});
+        setWorkoutVolumeByDay({});
       }
     };
 
@@ -326,6 +363,9 @@ function WorkoutCalendarPage() {
             dayKey={activeDayKey}
             onClose={() => setActiveDayKey(null)}
             onSaved={() => setCalendarReloadKey((x) => x + 1)}
+            onWorkoutStatusChange={(dayKey, status) => {
+              setWorkoutStatusByDay((prev) => ({ ...prev, [dayKey]: status }));
+            }}
           />
         ) : (
           <>
@@ -380,6 +420,8 @@ function WorkoutCalendarPage() {
               exerciseNamesByDay={exerciseNamesByDay}
               workoutStatusByDay={workoutStatusByDay}
               workoutIdByDay={workoutIdByDay}
+              workoutTitleByDay={workoutTitleByDay}
+              workoutVolumeByDay={workoutVolumeByDay}
               pasteMode={pasteMode}
               selectedDayKeys={selectedDayKeys}
               onToggleDay={toggleSelectedDay}

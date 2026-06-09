@@ -1,3 +1,4 @@
+import { formatWorkoutVolume } from '../../lib/workoutVolume';
 import styles from './MonthCalendar.module.css';
 
 const WEEKDAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -23,15 +24,21 @@ function MonthCalendar({
   exerciseNamesByDay,
   workoutStatusByDay,
   workoutIdByDay,
+  workoutTitleByDay,
+  workoutVolumeByDay,
   pasteMode,
   selectedDayKeys,
   onToggleDay,
   onCopyDay,
   maxLines = 3,
 }) {
-  const renderCellContent = (cell) => (
+  const renderCellBody = (cell, { workoutTitle }) => (
     <>
-      <span className={styles.dayNum}>{cell.date.getDate()}</span>
+      {workoutTitle ? (
+        <div className={styles.workoutTitleMini} title={workoutTitle}>
+          {workoutTitle}
+        </div>
+      ) : null}
 
       {Array.isArray(exerciseNamesByDay?.[cell.dayKey]) &&
         exerciseNamesByDay[cell.dayKey].length > 0 && (
@@ -49,6 +56,40 @@ function MonthCalendar({
           </div>
         )}
     </>
+  );
+
+  const renderCellHeader = (cell, { hasWorkout }) => (
+    <div className={styles.cellHeader}>
+      <span className={styles.dayNum}>{cell.date.getDate()}</span>
+      {hasWorkout ? (
+        <span
+          role="button"
+          tabIndex={0}
+          className={styles.copyBtn}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCopyDay?.(cell.dayKey);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              onCopyDay?.(cell.dayKey);
+            }
+          }}
+          aria-label="Copy workout"
+          title="Copy workout"
+        >
+          Copy
+        </span>
+      ) : null}
+    </div>
+  );
+
+  const renderOutMonthContent = (cell) => (
+    <div className={styles.cellHeader}>
+      <span className={styles.dayNum}>{cell.date.getDate()}</span>
+    </div>
   );
 
   return (
@@ -70,6 +111,7 @@ function MonthCalendar({
           const statusClass = workoutStatus ? getWorkoutStatusCellClass(workoutStatus, styles) : '';
           const isSelected = Boolean(cell.inMonth && selectedDayKeys?.has?.(cell.dayKey));
           const hasWorkout = Boolean(cell.inMonth && workoutIdByDay?.[cell.dayKey]);
+          const workoutTitle = hasWorkout ? workoutTitleByDay?.[cell.dayKey] : null;
 
           const cellClassName = [
             styles.cell,
@@ -82,6 +124,11 @@ function MonthCalendar({
             .join(' ');
 
           if (cell.inMonth) {
+            const volumeLabel =
+              workoutStatus === 'done' && hasWorkout
+                ? formatWorkoutVolume(workoutVolumeByDay?.[cell.dayKey] ?? 0)
+                : null;
+
             return (
               <button
                 key={cell.dayKey}
@@ -94,39 +141,29 @@ function MonthCalendar({
                   }
                   onDayClick?.(cell.dayKey);
                 }}
-                aria-label={`Тренировка ${cell.dayKey}`}
+                aria-label={
+                  workoutTitle
+                    ? volumeLabel
+                      ? `Тренировка ${cell.dayKey}: ${workoutTitle}, ${volumeLabel} кг`
+                      : `Тренировка ${cell.dayKey}: ${workoutTitle}`
+                    : `Тренировка ${cell.dayKey}`
+                }
                 data-workout-status={workoutStatus || undefined}
               >
-                {hasWorkout ? (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className={styles.copyBtn}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCopyDay?.(cell.dayKey);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onCopyDay?.(cell.dayKey);
-                      }
-                    }}
-                    aria-label="Copy workout"
-                    title="Copy workout"
-                  >
-                    Copy
-                  </span>
+                {renderCellHeader(cell, { hasWorkout })}
+                <div className={styles.cellMain}>
+                  {renderCellBody(cell, { workoutTitle })}
+                </div>
+                {workoutStatus === 'done' && hasWorkout ? (
+                  <div className={styles.cellVolume}>{volumeLabel} кг</div>
                 ) : null}
-                {renderCellContent(cell)}
               </button>
             );
           }
 
           return (
             <div key={cell.dayKey} className={cellClassName}>
-              {renderCellContent(cell)}
+              {renderOutMonthContent(cell)}
             </div>
           );
         })}
