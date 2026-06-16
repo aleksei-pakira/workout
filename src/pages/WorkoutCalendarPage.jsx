@@ -112,41 +112,60 @@ function WorkoutCalendarPage() {
       const rangeEnd = grid[grid.length - 1]?.dayKey;
       if (!rangeStart || !rangeEnd) return;
 
+      let workouts;
       try {
-        // 1) workouts for visible 42-day range
-        const workouts = await pb.collection('workouts').getFullList({
+        workouts = await pb.collection('workouts').getFullList({
           filter: `user = "${user.id}" && date >= "${rangeStart}" && date <= "${rangeEnd}"`,
           sort: '-date',
           requestKey: null,
         });
-
+      } catch (e) {
+        console.error('Ошибка загрузки тренировок для календаря:', e);
         if (!mounted) return;
-        if (!workouts.length) {
-          setExerciseNamesByDay({});
-          setWorkoutStatusByDay({});
-          setWorkoutIdByDay({});
-          setWorkoutTitleByDay({});
-          setWorkoutVolumeByDay({});
-          return;
-        }
+        setExerciseNamesByDay({});
+        setWorkoutStatusByDay({});
+        setWorkoutIdByDay({});
+        setWorkoutTitleByDay({});
+        setWorkoutVolumeByDay({});
+        return;
+      }
 
-        const workoutDayKeyById = new Map();
-        const statusByDay = {};
-        const idByDay = {};
-        const titleByDay = {};
-        for (const w of workouts) {
-          const dayKey = toDayKey(w.date);
-          if (!dayKey) continue;
-          workoutDayKeyById.set(w.id, dayKey);
-          statusByDay[dayKey] = normalizeWorkoutStatus(w.workout_status);
-          idByDay[dayKey] = w.id;
-          titleByDay[dayKey] = (w.title || '').trim() || 'Тренировка';
-        }
+      if (!mounted) return;
+      if (!workouts.length) {
+        setExerciseNamesByDay({});
+        setWorkoutStatusByDay({});
+        setWorkoutIdByDay({});
+        setWorkoutTitleByDay({});
+        setWorkoutVolumeByDay({});
+        return;
+      }
 
-        const workoutIds = Array.from(workoutDayKeyById.keys());
+      const workoutDayKeyById = new Map();
+      const statusByDay = {};
+      const idByDay = {};
+      const titleByDay = {};
+      for (const w of workouts) {
+        const dayKey = toDayKey(w.date);
+        if (!dayKey) continue;
+        workoutDayKeyById.set(w.id, dayKey);
+        statusByDay[dayKey] = normalizeWorkoutStatus(w.workout_status);
+        idByDay[dayKey] = w.id;
+        titleByDay[dayKey] = (w.title || '').trim() || 'Тренировка';
+      }
+
+      const workoutIds = Array.from(workoutDayKeyById.keys());
+
+      if (!mounted) return;
+      setWorkoutStatusByDay(statusByDay);
+      setWorkoutIdByDay(idByDay);
+      setWorkoutTitleByDay(titleByDay);
+
+      let exerciseNames = {};
+      let variantIdToDayKey = {};
+      let variantIdToIsCustom = {};
+
+      try {
         const orFilter = workoutIds.map((id) => `workout = "${id}"`).join(' || ');
-
-        // 2) workout_exercises for those workouts (names only)
         const wes = await pb.collection('workout_exercises').getFullList({
           filter: orFilter,
           expand: 'exercise',
@@ -179,28 +198,11 @@ function WorkoutCalendarPage() {
           if (dayKey) weIdToDayKey[we.id] = dayKey;
         }
 
-        const variantIdToDayKey = {};
-        const variantIdToIsCustom = {};
         for (const v of allVariants) {
           const dayKey = weIdToDayKey[v.workout_exercise];
           if (dayKey) variantIdToDayKey[v.id] = dayKey;
           variantIdToIsCustom[v.id] = Boolean(v.custom_exercise);
         }
-
-        let volumeByDay = {};
-        const variantIds = allVariants.map((v) => v.id);
-        if (variantIds.length > 0) {
-          const variantFilter = variantIds
-            .map((id) => `workout_exercise_variant = "${id}"`)
-            .join(' || ');
-          const sets = await pb.collection('sets').getFullList({
-            filter: variantFilter,
-            requestKey: null,
-          });
-          volumeByDay = aggregateVolumeByDayKey(sets, variantIdToDayKey, variantIdToIsCustom);
-        }
-
-        if (!mounted) return;
 
         const map = new Map();
         for (const we of wes) {
@@ -215,24 +217,33 @@ function WorkoutCalendarPage() {
           map.get(dayKey).add(String(name));
         }
 
-        const obj = {};
         for (const [dayKey, set] of map.entries()) {
-          obj[dayKey] = Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'));
+          exerciseNames[dayKey] = Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'));
         }
-        setExerciseNamesByDay(obj);
-        setWorkoutStatusByDay(statusByDay);
-        setWorkoutIdByDay(idByDay);
-        setWorkoutTitleByDay(titleByDay);
-        setWorkoutVolumeByDay(volumeByDay);
       } catch (e) {
         console.error('Ошибка загрузки упражнений для календаря:', e);
-        if (!mounted) return;
-        setExerciseNamesByDay({});
-        setWorkoutStatusByDay({});
-        setWorkoutIdByDay({});
-        setWorkoutTitleByDay({});
-        setWorkoutVolumeByDay({});
       }
+
+      let volumeByDay = {};
+      try {
+        if (workoutIds.length > 0) {
+          const setsFilter = workoutIds
+            .map((id) => `workout_exercise_variant.workout_exercise.workout = "${id}"`)
+            .join(' || ');
+          const sets = await pb.collection('sets').getFullList({
+            filter: setsFilter,
+            sort: 'set_number',
+            requestKey: null,
+          });
+          volumeByDay = aggregateVolumeByDayKey(sets, variantIdToDayKey, variantIdToIsCustom);
+        }
+      } catch (e) {
+        console.error('Ошибка загрузки тоннажа для календаря:', e);
+      }
+
+      if (!mounted) return;
+      setExerciseNamesByDay(exerciseNames);
+      setWorkoutVolumeByDay(volumeByDay);
     };
 
     load();
