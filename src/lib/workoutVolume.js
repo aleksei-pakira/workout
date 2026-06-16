@@ -1,3 +1,4 @@
+import { isCustomBlock, isCustomDraftBlock } from './exerciseSetSchema';
 import { normalizeSetStatus, SET_STATUS } from './setStatus';
 
 function isDoneSet(set) {
@@ -13,6 +14,7 @@ export function calcSetVolume(set) {
 
 /** block из loadWorkoutBlocks: { setsByVariantId } */
 export function calcExerciseVolumeFromBlock(block) {
+  if (isCustomBlock(block)) return 0;
   let total = 0;
   for (const sets of Object.values(block.setsByVariantId || {})) {
     for (const s of sets) total += calcSetVolume(s);
@@ -22,6 +24,7 @@ export function calcExerciseVolumeFromBlock(block) {
 
 /** block из draftExercises: { variants } */
 export function calcExerciseVolumeFromDraftBlock(block) {
+  if (isCustomDraftBlock(block)) return 0;
   let total = 0;
   for (const variant of Object.values(block.variants || {})) {
     for (const s of variant.sets || []) total += calcSetVolume(s);
@@ -45,10 +48,12 @@ export function formatWorkoutVolume(total) {
   return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 }).format(total);
 }
 
-export function aggregateVolumeByDayKey(sets, variantIdToDayKey) {
+export function aggregateVolumeByDayKey(sets, variantIdToDayKey, variantIdToIsCustom = {}) {
   const volumeByDay = {};
   for (const s of sets || []) {
-    const dayKey = variantIdToDayKey[s.workout_exercise_variant];
+    const variantId = s.workout_exercise_variant;
+    if (variantIdToIsCustom[variantId]) continue;
+    const dayKey = variantIdToDayKey[variantId];
     if (!dayKey) continue;
     volumeByDay[dayKey] = (volumeByDay[dayKey] || 0) + calcSetVolume(s);
   }

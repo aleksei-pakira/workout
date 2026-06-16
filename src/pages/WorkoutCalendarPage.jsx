@@ -161,7 +161,7 @@ function WorkoutCalendarPage() {
           const weFilter = weIds.map((weId) => `workout_exercise = "${weId}"`).join(' || ');
           allVariants = await pb.collection('workout_exercise_variants').getFullList({
             filter: weFilter,
-            expand: 'exercise',
+            expand: 'exercise,custom_exercise',
             sort: 'variant_index',
             requestKey: null,
           });
@@ -180,9 +180,11 @@ function WorkoutCalendarPage() {
         }
 
         const variantIdToDayKey = {};
+        const variantIdToIsCustom = {};
         for (const v of allVariants) {
           const dayKey = weIdToDayKey[v.workout_exercise];
           if (dayKey) variantIdToDayKey[v.id] = dayKey;
+          variantIdToIsCustom[v.id] = Boolean(v.custom_exercise);
         }
 
         let volumeByDay = {};
@@ -195,7 +197,7 @@ function WorkoutCalendarPage() {
             filter: variantFilter,
             requestKey: null,
           });
-          volumeByDay = aggregateVolumeByDayKey(sets, variantIdToDayKey);
+          volumeByDay = aggregateVolumeByDayKey(sets, variantIdToDayKey, variantIdToIsCustom);
         }
 
         if (!mounted) return;
@@ -426,7 +428,6 @@ function WorkoutCalendarPage() {
               selectedDayKeys={selectedDayKeys}
               onToggleDay={toggleSelectedDay}
               onCopyDay={handleCopyDay}
-              maxLines={5}
             />
           </>
         )}

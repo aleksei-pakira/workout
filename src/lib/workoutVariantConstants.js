@@ -17,9 +17,16 @@ export function createEmptyVariantSlot(variantIndex) {
   return {
     variantIndex,
     exerciseId: null,
+    customExerciseId: null,
+    exerciseKind: 'classic',
     exerciseName: '',
+    setColumns: null,
     sets: [{ ...EMPTY_SET_ROW }],
   };
+}
+
+export function isVariantFilled(variant) {
+  return Boolean(variant?.exerciseId || variant?.customExerciseId);
 }
 
 export function createEmptyBlock(orderIndex = 1) {
@@ -60,6 +67,7 @@ export function getVariantRecordByIndex(variants, variantIndex) {
 
 export function getVariantExerciseName(variant, we) {
   return (
+    variant?.expand?.custom_exercise?.custom_exercise_name ||
     variant?.expand?.exercise?.exercise_name ||
     we?.expand?.exercise?.exercise_name ||
     we?.custom_name ||

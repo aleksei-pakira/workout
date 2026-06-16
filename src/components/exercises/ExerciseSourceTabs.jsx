@@ -4,7 +4,11 @@ export default function ExerciseSourceTabs({
   value,
   onChange,
   className = '',
-  labels = { mine: 'Мои упражнения', public: 'Публичные упражнения' },
+  labels = {
+    mine: 'Мои упражнения',
+    public: 'Публичные упражнения',
+    custom: 'Пользовательские',
+  },
 }) {
   return (
     <div className={`${styles.tabs} ${className}`.trim()}>
@@ -21,6 +25,13 @@ export default function ExerciseSourceTabs({
         onClick={() => onChange?.('public')}
       >
         {labels?.public || 'Публичные упражнения'}
+      </button>
+      <button
+        type="button"
+        className={`${styles.tab} ${value === 'custom' ? styles.tabActive : ''}`}
+        onClick={() => onChange?.('custom')}
+      >
+        {labels?.custom || 'Пользовательские'}
       </button>
     </div>
   );

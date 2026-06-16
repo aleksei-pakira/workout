@@ -9,6 +9,7 @@ import {
   getSortedVariantIndices,
   getVariantExerciseName,
   getVariantRecordByIndex,
+  isVariantFilled,
   MAIN_VARIANT_INDEX,
   resolveActiveVariantIndex,
 } from '../../lib/workoutVariantConstants';
@@ -34,7 +35,17 @@ import {
   calcWorkoutVolumeFromDraft,
   formatWorkoutVolume,
 } from '../../lib/workoutVolume';
+import {
+  createEmptySetRowForColumns,
+  getColumnsFromCustomExercise,
+  getExercisePickerLabel,
+  isCustomApiVariant,
+  isCustomDraftBlock,
+  isCustomVariant,
+  isCustomBlock,
+} from '../../lib/exerciseSetSchema';
 import ExerciseSourceTabs from '../exercises/ExerciseSourceTabs';
+import DynamicSetTable from '../sets/DynamicSetTable';
 import ExerciseVariantCarousel from './ExerciseVariantCarousel';
 import styles from './CalendarWorkoutForm.module.css';
 
@@ -75,7 +86,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
   const canSave = useMemo(
     () =>
       draftExercises.length > 0 &&
-      draftExercises.every((block) => Boolean(block.variants?.[MAIN_VARIANT_INDEX]?.exerciseId)),
+      draftExercises.every((block) => isVariantFilled(block.variants?.[MAIN_VARIANT_INDEX])),
     [draftExercises]
   );
 
@@ -154,6 +165,50 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
     );
   };
 
+  const updateDraftSetValue = (blockIdx, variantIndex, setIdx, colKey, value) => {
+    setDraftExercises((prev) =>
+      prev.map((block, i) => {
+        if (i !== blockIdx) return block;
+        const withSlot = ensureVariantSlot(block, variantIndex);
+        const variant = withSlot.variants[variantIndex];
+        const nextSets = (variant.sets || []).map((s, j) =>
+          j === setIdx ? { ...s, values: { ...(s.values || {}), [colKey]: value } } : s
+        );
+        return {
+          ...withSlot,
+          variants: {
+            ...withSlot.variants,
+            [variantIndex]: { ...variant, sets: nextSets },
+          },
+        };
+      })
+    );
+  };
+
+  const selectExerciseFromDropdown = (blockIdx, variantIndex, ex) => {
+    if (ex.kind === 'custom') {
+      const columns = getColumnsFromCustomExercise(ex);
+      updateDraftVariant(blockIdx, variantIndex, {
+        exerciseId: null,
+        customExerciseId: ex.id,
+        exerciseKind: 'custom',
+        exerciseName: ex.custom_exercise_name || '',
+        setColumns: columns,
+        sets: [createEmptySetRowForColumns(columns)],
+      });
+      return;
+    }
+
+    updateDraftVariant(blockIdx, variantIndex, {
+      exerciseId: ex.id,
+      customExerciseId: null,
+      exerciseKind: 'classic',
+      exerciseName: ex.exercise_name || '',
+      setColumns: null,
+      sets: [{ set_number: 1, weight: '', reps: '', status: DEFAULT_SET_STATUS }],
+    });
+  };
+
   const removeDraftExercise = (blockIdx) => {
     setDraftExercises((prev) => {
       if (prev.length <= 1) return prev;
@@ -175,10 +230,13 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
         const withSlot = ensureVariantSlot(block, variantIndex);
         const variant = withSlot.variants[variantIndex];
         const sets = variant.sets || [];
-        const nextSets = [
-          ...sets,
-          { set_number: sets.length + 1, weight: '', reps: '', status: DEFAULT_SET_STATUS },
-        ];
+        const isCustom = isCustomVariant(variant);
+        const nextSets = isCustom
+          ? [...sets, createEmptySetRowForColumns(variant.setColumns)]
+          : [
+              ...sets,
+              { set_number: sets.length + 1, weight: '', reps: '', status: DEFAULT_SET_STATUS },
+            ];
         return {
           ...withSlot,
           variants: {
@@ -216,7 +274,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
     if (!user?.id) return;
     if (!dayKey) return;
     if (!draftExercises.length) return;
-    if (!draftExercises.every((block) => block.variants?.[MAIN_VARIANT_INDEX]?.exerciseId)) return;
+    if (!draftExercises.every((block) => isVariantFilled(block.variants?.[MAIN_VARIANT_INDEX]))) return;
 
     const nextDayKey = getNextDayKey(dayKey);
     if (!nextDayKey) return;
@@ -582,14 +640,11 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
                                 type="button"
                                 className={styles.dropdownItem}
                                 onClick={() => {
-                                  updateDraftVariant(exIdx, activeVariantIndex, {
-                                    exerciseId: ex.id,
-                                    exerciseName: ex.exercise_name || '',
-                                  });
+                                  selectExerciseFromDropdown(exIdx, activeVariantIndex, ex);
                                   setOpenExerciseDropdown(null);
                                 }}
                               >
-                                {ex.exercise_name}
+                                {getExercisePickerLabel(ex)}
                               </button>
                             ))}
                           </div>
@@ -597,78 +652,93 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
                       </div>
                     )}
 
-                    <div className={styles.setsTable}>
-                      <div className={styles.setsHeader}>
-                        <div className={styles.hCell}>weight</div>
-                        <div className={styles.hCell}>reps</div>
-                        <div className={styles.hCell}>status</div>
-                      </div>
-
-                      {(activeVariant.sets || []).map((s, setIdx) => (
-                        <div key={s.set_number} className={styles.setRowCreate}>
-                          <div className={styles.cell}>
-                            <input
-                              type="number"
-                              className={styles.cellInput}
-                              value={s.weight}
-                              onChange={(e) =>
-                                updateDraftSet(exIdx, activeVariantIndex, setIdx, 'weight', e.target.value)
-                              }
-                              placeholder="0"
-                              inputMode="decimal"
-                            />
-                          </div>
-                          <div className={styles.cell}>
-                            <input
-                              type="number"
-                              className={styles.cellInput}
-                              value={s.reps}
-                              onChange={(e) =>
-                                updateDraftSet(exIdx, activeVariantIndex, setIdx, 'reps', e.target.value)
-                              }
-                              placeholder="0"
-                              inputMode="numeric"
-                            />
-                          </div>
-                          <div className={styles.cell}>
-                            <select
-                              className={styles.statusSelect}
-                              value={normalizeSetStatus(s.status)}
-                              onChange={(e) =>
-                                updateDraftSet(exIdx, activeVariantIndex, setIdx, 'status', e.target.value)
-                              }
-                            >
-                              {SET_STATUS_OPTIONS.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <button
-                            type="button"
-                            className={styles.removeSetBtn}
-                            onClick={() => removeDraftSet(exIdx, activeVariantIndex, setIdx)}
-                            aria-label="Remove set"
-                            disabled={(activeVariant.sets || []).length <= 1}
-                          >
-                            ×
-                          </button>
+                    {isCustomVariant(activeVariant) ? (
+                      <DynamicSetTable
+                        columns={activeVariant.setColumns || []}
+                        sets={activeVariant.sets || []}
+                        mode="edit"
+                        onChangeValue={(setIdx, colKey, value) =>
+                          updateDraftSetValue(exIdx, activeVariantIndex, setIdx, colKey, value)
+                        }
+                        onAddSet={() => addDraftSet(exIdx, activeVariantIndex)}
+                        onRemoveSet={(setIdx) => removeDraftSet(exIdx, activeVariantIndex, setIdx)}
+                      />
+                    ) : (
+                      <div className={styles.setsTable}>
+                        <div className={styles.setsHeader}>
+                          <div className={styles.hCell}>weight</div>
+                          <div className={styles.hCell}>reps</div>
+                          <div className={styles.hCell}>status</div>
                         </div>
-                      ))}
 
-                      <button
-                        type="button"
-                        className={styles.addSetBtn}
-                        onClick={() => addDraftSet(exIdx, activeVariantIndex)}
-                      >
-                        + Добавить подход
-                      </button>
-                    </div>
+                        {(activeVariant.sets || []).map((s, setIdx) => (
+                          <div key={s.set_number} className={styles.setRowCreate}>
+                            <div className={styles.cell}>
+                              <input
+                                type="number"
+                                className={styles.cellInput}
+                                value={s.weight}
+                                onChange={(e) =>
+                                  updateDraftSet(exIdx, activeVariantIndex, setIdx, 'weight', e.target.value)
+                                }
+                                placeholder="0"
+                                inputMode="decimal"
+                              />
+                            </div>
+                            <div className={styles.cell}>
+                              <input
+                                type="number"
+                                className={styles.cellInput}
+                                value={s.reps}
+                                onChange={(e) =>
+                                  updateDraftSet(exIdx, activeVariantIndex, setIdx, 'reps', e.target.value)
+                                }
+                                placeholder="0"
+                                inputMode="numeric"
+                              />
+                            </div>
+                            <div className={styles.cell}>
+                              <select
+                                className={styles.statusSelect}
+                                value={normalizeSetStatus(s.status)}
+                                onChange={(e) =>
+                                  updateDraftSet(exIdx, activeVariantIndex, setIdx, 'status', e.target.value)
+                                }
+                              >
+                                {SET_STATUS_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <button
+                              type="button"
+                              className={styles.removeSetBtn}
+                              onClick={() => removeDraftSet(exIdx, activeVariantIndex, setIdx)}
+                              aria-label="Remove set"
+                              disabled={(activeVariant.sets || []).length <= 1}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
 
-                    <div className={styles.exerciseVolume}>
-                      Объём: {formatWorkoutVolume(calcExerciseVolumeFromDraftBlock(exBlock))} кг
-                    </div>
+                        <button
+                          type="button"
+                          className={styles.addSetBtn}
+                          onClick={() => addDraftSet(exIdx, activeVariantIndex)}
+                        >
+                          + Добавить подход
+                        </button>
+                      </div>
+                    )}
+
+                    {!isCustomDraftBlock(exBlock) ? (
+                      <div className={styles.exerciseVolume}>
+                        Объём: {formatWorkoutVolume(calcExerciseVolumeFromDraftBlock(exBlock))} кг
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -759,6 +829,15 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
                     const sets = activeVariant
                       ? block.setsByVariantId[activeVariant.id] || []
                       : [];
+                    const isCustomView = isCustomApiVariant(activeVariant);
+                    const customColumns = isCustomView
+                      ? getColumnsFromCustomExercise(activeVariant?.expand?.custom_exercise)
+                      : [];
+                    const customViewSets = sets.map((s) => ({
+                      id: s.id,
+                      set_number: s.set_number,
+                      values: s.values && typeof s.values === 'object' ? s.values : {},
+                    }));
 
                     return (
                       <div key={we.id} className={styles.exerciseBlock}>
@@ -788,48 +867,58 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
                           </div>
                         </div>
 
-                        <div className={styles.setsTable}>
-                          <div className={styles.setsHeader}>
-                            <div className={styles.hCell}>weight</div>
-                            <div className={styles.hCell}>reps</div>
-                            <div className={styles.hCell}>status</div>
-                          </div>
+                        {isCustomView ? (
+                          <DynamicSetTable
+                            columns={customColumns}
+                            sets={customViewSets}
+                            mode="view"
+                          />
+                        ) : (
+                          <div className={styles.setsTable}>
+                            <div className={styles.setsHeader}>
+                              <div className={styles.hCell}>weight</div>
+                              <div className={styles.hCell}>reps</div>
+                              <div className={styles.hCell}>status</div>
+                            </div>
 
-                          {sets.length === 0 ? (
-                            <div className={styles.noSets}>Пока нет подходов</div>
-                          ) : (
-                            sets.map((s) => {
-                              const statusValue = normalizeSetStatus(s.status);
+                            {sets.length === 0 ? (
+                              <div className={styles.noSets}>Пока нет подходов</div>
+                            ) : (
+                              sets.map((s) => {
+                                const statusValue = normalizeSetStatus(s.status);
 
-                              return (
-                                <div key={s.id} className={styles.setRow}>
-                                  <div className={styles.cell}>{s.weight}</div>
-                                  <div className={styles.cell}>{s.reps}</div>
-                                  <div className={styles.cell}>
-                                    <select
-                                      className={styles.statusSelect}
-                                      value={statusValue}
-                                      disabled={!s.id}
-                                      onChange={(e) => {
-                                        updateSetStatus(activeVariant.id, s.id, e.target.value);
-                                      }}
-                                    >
-                                      {SET_STATUS_OPTIONS.map((opt) => (
-                                        <option key={opt.value} value={opt.value}>
-                                          {opt.label}
-                                        </option>
-                                      ))}
-                                    </select>
+                                return (
+                                  <div key={s.id} className={styles.setRow}>
+                                    <div className={styles.cell}>{s.weight}</div>
+                                    <div className={styles.cell}>{s.reps}</div>
+                                    <div className={styles.cell}>
+                                      <select
+                                        className={styles.statusSelect}
+                                        value={statusValue}
+                                        disabled={!s.id}
+                                        onChange={(e) => {
+                                          updateSetStatus(activeVariant.id, s.id, e.target.value);
+                                        }}
+                                      >
+                                        {SET_STATUS_OPTIONS.map((opt) => (
+                                          <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        )}
 
-                        <div className={styles.exerciseVolume}>
-                          Объём: {formatWorkoutVolume(calcExerciseVolumeFromBlock(block))} кг
-                        </div>
+                        {!isCustomBlock(block) ? (
+                          <div className={styles.exerciseVolume}>
+                            Объём: {formatWorkoutVolume(calcExerciseVolumeFromBlock(block))} кг
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })}

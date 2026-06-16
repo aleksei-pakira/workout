@@ -2,6 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
+import {
+  COLUMN_TYPES,
+  MAX_SET_COLUMNS,
+  columnsToDraftRows,
+  draftRowsToColumns,
+} from '../lib/exerciseSetSchema';
 import styles from './ExercisesPage.module.css';
 
 function escapePbLike(value) {
@@ -13,7 +19,7 @@ function ExercisesPage() {
   const location = useLocation();
 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('my'); // 'my' | 'add' | 'create'
+  const [activeTab, setActiveTab] = useState('my'); // 'my' | 'add' | 'create' | 'custom'
   const [myQ, setMyQ] = useState('');
   const [libraryQ, setLibraryQ] = useState('');
   const [libraryPage, setLibraryPage] = useState(1);
@@ -39,6 +45,54 @@ function ExercisesPage() {
     video_url: '',
     exercise_description: '',
   });
+  const [editingExerciseId, setEditingExerciseId] = useState(null);
+
+  const [customExercises, setCustomExercises] = useState([]);
+  const [customQ, setCustomQ] = useState('');
+  const [editingCustomId, setEditingCustomId] = useState(null);
+  const [customSaving, setCustomSaving] = useState(false);
+  const [customError, setCustomError] = useState('');
+  const [customForm, setCustomForm] = useState({
+    custom_exercise_name: '',
+    columnRows: [{ label: '', type: 'text', options: '' }],
+  });
+
+  const emptyExerciseForm = () => ({
+    exercise_name: '',
+    muscle_group: '',
+    video_url: '',
+    exercise_description: '',
+  });
+
+  const resetExerciseForm = () => {
+    setEditingExerciseId(null);
+    setNewExercise(emptyExerciseForm());
+    setCreateError('');
+  };
+
+  const resetCustomForm = () => {
+    setEditingCustomId(null);
+    setCustomForm({
+      custom_exercise_name: '',
+      columnRows: [{ label: '', type: 'text', options: '' }],
+    });
+    setCustomError('');
+  };
+
+  const loadCustomExercises = async () => {
+    if (!user?.id) return;
+
+    try {
+      const list = await pb.collection('custom_exercises').getFullList({
+        filter: `user = "${user.id}"`,
+        sort: 'custom_exercise_name',
+        requestKey: null,
+      });
+      setCustomExercises(list || []);
+    } catch (e) {
+      console.error('Ошибка загрузки пользовательских упражнений:', e);
+    }
+  };
 
   const loadExercises = async () => {
     if (!user?.id) return;
@@ -63,6 +117,7 @@ function ExercisesPage() {
       setLibraryLinks(links);
 
       setMyPublicIds(new Set(links.map((r) => r.exercise).filter(Boolean)));
+      await loadCustomExercises();
     } catch (e) {
       console.error('Ошибка загрузки упражнений:', e);
     } finally {
@@ -78,7 +133,7 @@ function ExercisesPage() {
 
   useEffect(() => {
     const tabFromState = location?.state?.tab;
-    if (tabFromState === 'my' || tabFromState === 'add' || tabFromState === 'create') {
+    if (tabFromState === 'my' || tabFromState === 'add' || tabFromState === 'create' || tabFromState === 'custom') {
       setActiveTab(tabFromState);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -208,7 +263,7 @@ function ExercisesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, libraryPage, libraryQ, user?.id]);
 
-  const createMyExercise = async (e) => {
+  const saveExercise = async (e) => {
     e.preventDefault();
     if (!user?.id) return;
 
@@ -218,37 +273,67 @@ function ExercisesPage() {
       return;
     }
 
+    const payload = {
+      exercise_name: name,
+      muscle_group: newExercise.muscle_group.trim(),
+      video_url: newExercise.video_url.trim(),
+      exercise_description: newExercise.exercise_description.trim(),
+    };
+
     setCreateError('');
     setCreating(true);
     try {
-      await pb.collection('exercises').create(
-        {
-          created_by: user.id,
-          is_public: false,
-          exercise_name: name,
-          muscle_group: newExercise.muscle_group.trim(),
-          video_url: newExercise.video_url.trim(),
-          exercise_description: newExercise.exercise_description.trim(),
-        },
-        { requestKey: null }
-      );
+      if (editingExerciseId) {
+        await pb.collection('exercises').update(editingExerciseId, payload, { requestKey: null });
+      } else {
+        await pb.collection('exercises').create(
+          {
+            created_by: user.id,
+            is_public: false,
+            ...payload,
+          },
+          { requestKey: null }
+        );
+      }
 
-      setNewExercise({
-        exercise_name: '',
-        muscle_group: '',
-        video_url: '',
-        exercise_description: '',
-      });
-
+      resetExerciseForm();
       await loadExercises();
       setShowCreated(true);
       setActiveTab('my');
     } catch (err) {
-      console.error('Ошибка создания упражнения:', err);
-      setCreateError(err?.message || 'Не удалось создать упражнение');
+      console.error(
+        editingExerciseId ? 'Ошибка обновления упражнения:' : 'Ошибка создания упражнения:',
+        err
+      );
+      setCreateError(
+        err?.message ||
+          (editingExerciseId ? 'Не удалось сохранить упражнение' : 'Не удалось создать упражнение')
+      );
     } finally {
       setCreating(false);
     }
+  };
+
+  const startEditExercise = (ex) => {
+    setEditingExerciseId(ex.id);
+    setNewExercise({
+      exercise_name: ex.exercise_name || '',
+      muscle_group: ex.muscle_group || '',
+      video_url: ex.video_url || '',
+      exercise_description: ex.exercise_description || '',
+    });
+    setCreateError('');
+    setActiveTab('create');
+  };
+
+  const cancelEditExercise = () => {
+    resetExerciseForm();
+    setActiveTab('my');
+  };
+
+  const openCreateTab = () => {
+    resetExerciseForm();
+    setActiveTab('create');
   };
 
   const deleteMyExercise = async (id) => {
@@ -260,6 +345,92 @@ function ExercisesPage() {
       console.error('Ошибка удаления упражнения:', e);
       alert('Не удалось удалить упражнение');
     }
+  };
+
+  const saveCustomExercise = async (e) => {
+    e.preventDefault();
+    if (!user?.id) return;
+
+    const name = customForm.custom_exercise_name.trim();
+    if (!name) {
+      setCustomError('Название обязательно');
+      return;
+    }
+
+    const set_columns = draftRowsToColumns(customForm.columnRows);
+    if (!set_columns.length) {
+      setCustomError('Добавьте хотя бы один столбец');
+      return;
+    }
+
+    setCustomError('');
+    setCustomSaving(true);
+    try {
+      const payload = { custom_exercise_name: name, set_columns };
+      if (editingCustomId) {
+        await pb.collection('custom_exercises').update(editingCustomId, payload, { requestKey: null });
+      } else {
+        await pb.collection('custom_exercises').create(
+          { user: user.id, ...payload },
+          { requestKey: null }
+        );
+      }
+      resetCustomForm();
+      await loadCustomExercises();
+    } catch (err) {
+      console.error('Ошибка сохранения пользовательского упражнения:', err);
+      setCustomError(err?.message || 'Не удалось сохранить');
+    } finally {
+      setCustomSaving(false);
+    }
+  };
+
+  const startEditCustom = (item) => {
+    setEditingCustomId(item.id);
+    setCustomForm({
+      custom_exercise_name: item.custom_exercise_name || '',
+      columnRows: columnsToDraftRows(item.set_columns),
+    });
+    setCustomError('');
+  };
+
+  const deleteCustomExercise = async (id) => {
+    if (!confirm('Удалить пользовательское упражнение?')) return;
+    try {
+      await pb.collection('custom_exercises').delete(id, { requestKey: null });
+      if (editingCustomId === id) resetCustomForm();
+      await loadCustomExercises();
+    } catch (e) {
+      console.error('Ошибка удаления пользовательского упражнения:', e);
+      alert('Не удалось удалить');
+    }
+  };
+
+  const updateColumnRow = (index, patch) => {
+    setCustomForm((prev) => ({
+      ...prev,
+      columnRows: prev.columnRows.map((row, i) => (i === index ? { ...row, ...patch } : row)),
+    }));
+  };
+
+  const addColumnRow = () => {
+    setCustomForm((prev) => {
+      if (prev.columnRows.length >= MAX_SET_COLUMNS) return prev;
+      return {
+        ...prev,
+        columnRows: [...prev.columnRows, { label: '', type: 'text', options: '' }],
+      };
+    });
+  };
+
+  const removeColumnRow = (index) => {
+    setCustomForm((prev) => {
+      if (prev.columnRows.length <= 1) return prev;
+      return {
+        ...prev,
+        columnRows: prev.columnRows.filter((_, i) => i !== index),
+      };
+    });
   };
 
   const removeFromMyLibrary = async (linkId) => {
@@ -310,6 +481,14 @@ function ExercisesPage() {
       (ex.exercise_name || '').toLowerCase().includes(myQueryEscaped)
     );
   }, [myExercises, myQueryEscaped]);
+
+  const customQueryEscaped = escapePbLike(customQ.trim()).toLowerCase();
+  const filteredCustomExercises = useMemo(() => {
+    if (!customQueryEscaped) return customExercises;
+    return customExercises.filter((ex) =>
+      (ex.custom_exercise_name || '').toLowerCase().includes(customQueryEscaped)
+    );
+  }, [customExercises, customQueryEscaped]);
 
   if (loading) {
     return (
@@ -403,9 +582,19 @@ function ExercisesPage() {
               <button
                 type="button"
                 className={activeTab === 'create' ? styles.tabBtnActive : styles.tabBtn}
-                onClick={() => setActiveTab('create')}
+                onClick={openCreateTab}
               >
                 Создать упражнение
+              </button>
+              <button
+                type="button"
+                className={activeTab === 'custom' ? styles.tabBtnActive : styles.tabBtn}
+                onClick={() => {
+                  resetCustomForm();
+                  setActiveTab('custom');
+                }}
+              >
+                Пользовательские
               </button>
             </div>
 
@@ -496,7 +685,14 @@ function ExercisesPage() {
                               <div className={styles.cardActions}>
                                 <button
                                   type="button"
-                                  className={styles.dangerBtn}
+                                  className={styles.cardActionBtn}
+                                  onClick={() => startEditExercise(ex)}
+                                >
+                                  Редактировать
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
                                   onClick={() => deleteMyExercise(ex.id)}
                                 >
                                   Удалить
@@ -590,9 +786,151 @@ function ExercisesPage() {
               </>
             )}
 
+            {/* ===== TAB: CUSTOM ===== */}
+            {activeTab === 'custom' && (
+              <div className={styles.customTab}>
+                <div className={styles.topRow}>
+                  <div className={styles.searchWrap}>
+                    <input
+                      value={customQ}
+                      onChange={(e) => setCustomQ(e.target.value)}
+                      className={styles.searchInput}
+                      placeholder="Поиск пользовательских…"
+                    />
+                  </div>
+                </div>
+
+                <form onSubmit={saveCustomExercise} className={styles.createFormPlain}>
+                  <h2 className={styles.sectionTitle}>
+                    {editingCustomId ? 'Редактировать' : 'Создать'} пользовательское упражнение
+                  </h2>
+                  {customError ? <div className={styles.formError}>{customError}</div> : null}
+
+                  <input
+                    className={styles.formInput}
+                    value={customForm.custom_exercise_name}
+                    onChange={(e) =>
+                      setCustomForm((p) => ({ ...p, custom_exercise_name: e.target.value }))
+                    }
+                    placeholder="Название *"
+                  />
+
+                  <div className={styles.columnEditor}>
+                    <div className={styles.columnEditorHeader}>
+                      <span>Столбцы подходов (макс. {MAX_SET_COLUMNS})</span>
+                      <button
+                        type="button"
+                        className={styles.secondaryBtn}
+                        onClick={addColumnRow}
+                        disabled={customForm.columnRows.length >= MAX_SET_COLUMNS}
+                      >
+                        + Столбец
+                      </button>
+                    </div>
+
+                    {customForm.columnRows.map((row, index) => (
+                      <div key={index} className={styles.columnRow}>
+                        <input
+                          className={styles.formInput}
+                          value={row.label}
+                          onChange={(e) => updateColumnRow(index, { label: e.target.value })}
+                          placeholder="Название столбца"
+                        />
+                        <select
+                          className={styles.formInput}
+                          value={row.type}
+                          onChange={(e) => updateColumnRow(index, { type: e.target.value })}
+                        >
+                          {COLUMN_TYPES.map((t) => (
+                            <option key={t} value={t}>
+                              {t === 'text' ? 'Текст' : t === 'number' ? 'Число' : 'Список'}
+                            </option>
+                          ))}
+                        </select>
+                        {row.type === 'list' ? (
+                          <input
+                            className={styles.formInput}
+                            value={row.options}
+                            onChange={(e) => updateColumnRow(index, { options: e.target.value })}
+                            placeholder="Варианты через запятую"
+                          />
+                        ) : (
+                          <div className={styles.columnRowSpacer} />
+                        )}
+                        <button
+                          type="button"
+                          className={styles.dangerBtn}
+                          onClick={() => removeColumnRow(index)}
+                          disabled={customForm.columnRows.length <= 1}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className={styles.formActions}>
+                    {editingCustomId ? (
+                      <button
+                        type="button"
+                        className={styles.secondaryBtn}
+                        disabled={customSaving}
+                        onClick={resetCustomForm}
+                      >
+                        Отмена
+                      </button>
+                    ) : null}
+                    <button type="submit" className={styles.primaryBtn} disabled={customSaving}>
+                      {customSaving ? 'Сохранение…' : editingCustomId ? 'Сохранить' : 'Создать'}
+                    </button>
+                  </div>
+                </form>
+
+                <div className={styles.section}>
+                  <div className={styles.sectionHeader}>
+                    <h2 className={styles.sectionTitle}>Мои пользовательские упражнения</h2>
+                  </div>
+
+                  {filteredCustomExercises.length === 0 ? (
+                    <div className={styles.emptyState}>Пока нет пользовательских упражнений.</div>
+                  ) : (
+                    <div className={styles.cardsGrid}>
+                      {filteredCustomExercises.map((item) => (
+                        <div key={item.id} className={styles.card}>
+                          <div className={styles.cardTitle}>{item.custom_exercise_name}</div>
+                          <div className={styles.cardMeta}>
+                            {(item.set_columns || []).length} столбцов
+                          </div>
+                          <div className={styles.cardActions}>
+                            <button
+                              type="button"
+                              className={styles.cardActionBtn}
+                              onClick={() => startEditCustom(item)}
+                            >
+                              Редактировать
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
+                              onClick={() => deleteCustomExercise(item.id)}
+                            >
+                              Удалить
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* ===== TAB: CREATE ===== */}
             {activeTab === 'create' && (
-              <form onSubmit={createMyExercise} className={styles.createFormPlain}>
+              <form onSubmit={saveExercise} className={styles.createFormPlain}>
+                <h2 className={styles.sectionTitle}>
+                  {editingExerciseId ? 'Редактировать упражнение' : 'Создать упражнение'}
+                </h2>
                 {createError && <div className={styles.formError}>{createError}</div>}
 
                 <div className={styles.formGridSingle}>
@@ -629,8 +967,24 @@ function ExercisesPage() {
                 </div>
 
                 <div className={styles.formActions}>
+                  {editingExerciseId ? (
+                    <button
+                      type="button"
+                      className={styles.secondaryBtn}
+                      disabled={creating}
+                      onClick={cancelEditExercise}
+                    >
+                      Отмена
+                    </button>
+                  ) : null}
                   <button type="submit" className={styles.primaryBtn} disabled={creating}>
-                    {creating ? 'Создание…' : 'Создать'}
+                    {creating
+                      ? editingExerciseId
+                        ? 'Сохранение…'
+                        : 'Создание…'
+                      : editingExerciseId
+                        ? 'Сохранить'
+                        : 'Создать'}
                   </button>
                 </div>
               </form>

@@ -58,8 +58,8 @@ function MonthCalendar({
     </>
   );
 
-  const renderCellHeader = (cell, { hasWorkout }) => (
-    <div className={styles.cellHeader}>
+  const renderCellTop = (cell, { hasWorkout }) => (
+    <div className={styles.cellTop}>
       <span className={styles.dayNum}>{cell.date.getDate()}</span>
       {hasWorkout ? (
         <span
@@ -87,7 +87,7 @@ function MonthCalendar({
   );
 
   const renderOutMonthContent = (cell) => (
-    <div className={styles.cellHeader}>
+    <div className={styles.cellTop}>
       <span className={styles.dayNum}>{cell.date.getDate()}</span>
     </div>
   );
@@ -150,7 +150,7 @@ function MonthCalendar({
                 }
                 data-workout-status={workoutStatus || undefined}
               >
-                {renderCellHeader(cell, { hasWorkout })}
+                {renderCellTop(cell, { hasWorkout })}
                 <div className={styles.cellMain}>
                   {renderCellBody(cell, { workoutTitle })}
                 </div>

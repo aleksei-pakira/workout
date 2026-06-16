@@ -1,4 +1,10 @@
 import pb from './pocketbase';
+import {
+  createEmptyValues,
+  createEmptySetRowForColumns,
+  getColumnsFromCustomExercise,
+  isCustomApiVariant,
+} from './exerciseSetSchema';
 import { normalizeSetStatus, statusToPocketBase } from './setStatus';
 import { normalizeWorkoutStatus, workoutStatusToPocketBase } from './setStatus';
 import {
@@ -6,9 +12,19 @@ import {
   EMPTY_SET_ROW,
   createEmptyVariantSlot,
   getVariantExerciseName,
+  isVariantFilled,
 } from './workoutVariantConstants';
 
-function draftSetFromApi(setRecord) {
+function draftSetFromApi(setRecord, isCustom, columns) {
+  if (isCustom) {
+    const base = createEmptyValues(columns);
+    const raw = setRecord.values && typeof setRecord.values === 'object' ? setRecord.values : {};
+    return {
+      set_number: setRecord.set_number,
+      values: { ...base, ...raw },
+    };
+  }
+
   return {
     set_number: setRecord.set_number,
     weight: String(setRecord.weight ?? ''),
@@ -79,7 +95,7 @@ export async function loadWorkoutBlocks(workoutId) {
   try {
     variants = await pb.collection('workout_exercise_variants').getFullList({
       filter: weFilter,
-      expand: 'exercise',
+      expand: 'exercise,custom_exercise',
       sort: 'variant_index',
       requestKey: null,
     });
@@ -176,16 +192,25 @@ export function normalizeBlockDraftFromApi(we, variants, setsByVariantId) {
   const variantsMap = {};
 
   for (const v of variants) {
+    const isCustom = isCustomApiVariant(v);
+    const columns = isCustom ? getColumnsFromCustomExercise(v.expand?.custom_exercise) : null;
     const sets = setsByVariantId[v.id] || [];
     variantsMap[v.variant_index] = {
       variantIndex: v.variant_index,
       variantId: v.id,
-      exerciseId: v.exercise,
-      exerciseName: v.expand?.exercise?.exercise_name || '',
+      exerciseId: v.exercise || null,
+      customExerciseId: v.custom_exercise || null,
+      exerciseKind: isCustom ? 'custom' : 'classic',
+      exerciseName: isCustom
+        ? v.expand?.custom_exercise?.custom_exercise_name || ''
+        : v.expand?.exercise?.exercise_name || '',
+      setColumns: columns,
       sets:
         sets.length > 0
-          ? sets.map(draftSetFromApi)
-          : [{ ...EMPTY_SET_ROW }],
+          ? sets.map((s) => draftSetFromApi(s, isCustom, columns))
+          : isCustom
+            ? [createEmptySetRowForColumns(columns)]
+            : [{ ...EMPTY_SET_ROW }],
     };
   }
 
@@ -215,33 +240,54 @@ export async function saveBlockVariantsAndSets({ workoutId, blockDraft, orderInd
     active_variant_index: activeVariantIndex,
   };
 
-  if (mainVariant?.exerciseId) {
+  if (mainVariant?.exerciseKind !== 'custom' && mainVariant?.exerciseId) {
     wePayload.exercise = mainVariant.exerciseId;
   }
 
   const we = await pb.collection('workout_exercises').create(wePayload, { requestKey: null });
 
-  const filledVariants = Object.values(blockDraft.variants || {}).filter((v) => v.exerciseId);
+  const filledVariants = Object.values(blockDraft.variants || {}).filter(isVariantFilled);
 
   await Promise.all(
     filledVariants.map(async (variantDraft) => {
+      const isCustom = variantDraft.exerciseKind === 'custom' || variantDraft.customExerciseId;
+      const variantPayload = {
+        workout_exercise: we.id,
+        variant_index: variantDraft.variantIndex,
+      };
+
+      if (isCustom) {
+        variantPayload.custom_exercise = variantDraft.customExerciseId;
+      } else {
+        variantPayload.exercise = variantDraft.exerciseId;
+      }
+
       const variantRecord = await pb.collection('workout_exercise_variants').create(
-        {
-          workout_exercise: we.id,
-          exercise: variantDraft.exerciseId,
-          variant_index: variantDraft.variantIndex,
-        },
+        variantPayload,
         { requestKey: null }
       );
 
       const setsToCreate =
         variantDraft.sets && variantDraft.sets.length
           ? variantDraft.sets
-          : [{ ...EMPTY_SET_ROW }];
+          : isCustom
+            ? [createEmptySetRowForColumns(variantDraft.setColumns)]
+            : [{ ...EMPTY_SET_ROW }];
 
       await Promise.all(
-        setsToCreate.map((s, i) =>
-          pb.collection('sets').create(
+        setsToCreate.map((s, i) => {
+          if (isCustom) {
+            return pb.collection('sets').create(
+              {
+                workout_exercise_variant: variantRecord.id,
+                set_number: i + 1,
+                values: s.values || {},
+              },
+              { requestKey: null }
+            );
+          }
+
+          return pb.collection('sets').create(
             {
               workout_exercise_variant: variantRecord.id,
               set_number: i + 1,
@@ -250,8 +296,8 @@ export async function saveBlockVariantsAndSets({ workoutId, blockDraft, orderInd
               status: statusToPocketBase(s.status),
             },
             { requestKey: null }
-          )
-        )
+          );
+        })
       );
     })
   );
@@ -290,16 +336,28 @@ export function sanitizeBlockDraftForCopy(blockDraft) {
   const nextVariants = {};
   for (const [k, v] of Object.entries(blockDraft.variants || {})) {
     const variantIndex = Number(k);
+    const isCustom = v?.exerciseKind === 'custom' || Boolean(v?.customExerciseId);
     nextVariants[variantIndex] = {
       variantIndex,
       exerciseId: v?.exerciseId ?? null,
+      customExerciseId: v?.customExerciseId ?? null,
+      exerciseKind: v?.exerciseKind || (isCustom ? 'custom' : 'classic'),
       exerciseName: v?.exerciseName || '',
-      sets: (v?.sets || []).map((s, i) => ({
-        set_number: Number(s?.set_number) || i + 1,
-        weight: String(s?.weight ?? ''),
-        reps: String(s?.reps ?? ''),
-        status: normalizeSetStatus(s?.status),
-      })),
+      setColumns: v?.setColumns ? [...v.setColumns] : null,
+      sets: (v?.sets || []).map((s, i) => {
+        if (isCustom) {
+          return {
+            set_number: Number(s?.set_number) || i + 1,
+            values: { ...(s?.values || {}) },
+          };
+        }
+        return {
+          set_number: Number(s?.set_number) || i + 1,
+          weight: String(s?.weight ?? ''),
+          reps: String(s?.reps ?? ''),
+          status: normalizeSetStatus(s?.status),
+        };
+      }),
     };
   }
 

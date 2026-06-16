@@ -1,0 +1,107 @@
+.setsTable {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.setsHeader {
+  display: grid;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-muted, #f8fafc);
+  border-bottom: 0;
+}
+
+.hCell {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--muted-2, #666);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setRow {
+  display: grid;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  align-items: center;
+}
+
+.setRowCreate {
+  composes: setRow;
+  padding-right: 38px;
+  position: relative;
+}
+
+.cell {
+  min-width: 0;
+}
+
+.cellInput {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  font-size: 13px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.statusSelect {
+  composes: cellInput;
+  padding: 6px 8px;
+}
+
+.removeSetBtn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface, #fff);
+  color: var(--text, #111);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.removeSetBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.addSetBtn {
+  margin: 8px 10px 10px;
+  align-self: flex-start;
+  border: 1px dashed var(--border, #e2e8f0);
+  background: transparent;
+  color: var(--text, #111);
+  font-weight: 800;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.noSets {
+  padding: 10px;
+  color: var(--muted-2, #666);
+  font-size: 13px;
+}
+
+.viewCell {
+  font-size: 13px;
+  color: var(--text, #111);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -165,17 +165,17 @@
   outline-offset: -2px;
 }
 
-.cellHeader {
+.cellTop {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
-  min-width: 0;
   flex: 0 0 auto;
+  min-width: 0;
 }
 
 .copyBtn {
-  flex: 0 0 auto;
+  align-self: flex-start;
   border: 1px solid var(--border-color, #dddddd);
   border-radius: 999px;
   background: var(--surface, #fff);

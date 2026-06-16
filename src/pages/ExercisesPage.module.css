@@ -396,6 +396,7 @@
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 
 .formError {
@@ -464,6 +465,37 @@
   gap: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
+}
+
+.cardActionBtn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.cardActionBtn:hover {
+  background: var(--hover-bg);
+  border-color: var(--hover-text);
+  color: var(--hover-text);
+}
+
+.cardActionBtnDanger {
+  color: var(--primary);
+  border-color: rgba(206, 17, 38, 0.3);
+  background: transparent;
+}
+
+.cardActionBtnDanger:hover {
+  background: rgba(206, 17, 38, 0.08);
+  border-color: rgba(206, 17, 38, 0.5);
+  color: var(--primary);
 }
 
 .primaryBtn {
@@ -535,6 +567,39 @@
   border-color: rgba(206, 17, 38, 0.5);
 }
 
+.customTab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.columnEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.columnEditorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.columnRow {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr 40px;
+  gap: 8px;
+  align-items: center;
+}
+
+.columnRowSpacer {
+  min-height: 1px;
+}
+
 @media (max-width: 768px) {
   .content {
     padding: 20px 15px;
@@ -551,7 +616,7 @@
 
   .tabsRow {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
@@ -585,6 +650,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: stretch;
     gap: 12px;
+  }
+
+  .columnRow {
+    grid-template-columns: 1fr;
   }
 }
 
