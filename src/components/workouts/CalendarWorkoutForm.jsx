@@ -48,6 +48,7 @@ import {
 import ExerciseSourceTabs from '../exercises/ExerciseSourceTabs';
 import DynamicSetTable from '../sets/DynamicSetTable';
 import ExerciseVariantCarousel from './ExerciseVariantCarousel';
+import { useExerciseDropdownSource } from '../../hooks/useExerciseDropdownSource';
 import styles from './CalendarWorkoutForm.module.css';
 
 function getNextDayKey(dayKey) {
