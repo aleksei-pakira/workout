@@ -2,10 +2,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
+import { getCoachingModeLabel, isTrainer } from '../lib/permissions';
+import { useCoachSession } from '../hooks/useCoachSession';
 import styles from './HomePage.module.css';
 
 function HomePage() {
-  const user = pb.authStore.model;
+  const { authUser, trainerLinks, clientCanEditPlans, isCoached } = useCoachSession();
+  const user = authUser;
   const [stats, setStats] = useState({
     totalWorkouts: 0,
     weeklyWorkouts: 0,
@@ -221,6 +224,36 @@ function HomePage() {
                   <p className={styles.userEmailCompact}>{user?.email}</p>
                 </div>
               </div>
+
+              {isTrainer(user) && user?.invite_code ? (
+                <div className={styles.coachBlock}>
+                  <div className={styles.coachBlockTitle}>Код тренера</div>
+                  <code className={styles.coachCode}>{user.invite_code}</code>
+                  <a className={styles.coachLink} href={`/join/${encodeURIComponent(user.invite_code)}`}>
+                    Ссылка для клиентов
+                  </a>
+                </div>
+              ) : null}
+
+              {!isTrainer(user) && isCoached ? (
+                <div className={styles.coachBlock}>
+                  <div className={styles.coachBlockTitle}>Режим</div>
+                  <p className={styles.coachModeText}>
+                    {getCoachingModeLabel({
+                      trainerLinkCount: trainerLinks.length,
+                      clientCanEditPlans,
+                    })}
+                  </p>
+                </div>
+              ) : null}
+
+              {!isTrainer(user) && trainerLinks.length === 0 ? (
+                <div className={styles.coachBlock}>
+                  <a className={styles.coachLink} href="/join">
+                    Подключить тренера
+                  </a>
+                </div>
+              ) : null}
 
               {/* Место для загрузки фото */}
               <div

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
+import { isTrainer } from '../lib/permissions';
+import { useCoachSession } from '../hooks/useCoachSession';
 import { normalizeWorkoutStatus } from '../lib/setStatus';
 import { aggregateVolumeByDayKey } from '../lib/workoutVolume';
 import {
@@ -85,7 +87,15 @@ function WorkoutCalendarPage() {
 
   const grid = useMemo(() => buildMonthGrid(selectedMonthKey), [selectedMonthKey]);
 
-  const user = pb.authStore.model;
+  const {
+    authUser,
+    effectiveUserId,
+    canEditPlans,
+    isTrainerView,
+  } = useCoachSession();
+  const user = authUser;
+  const dataUserId = effectiveUserId;
+  const trainerNeedsClient = isTrainer(authUser) && !isTrainerView;
   const [exerciseNamesByDay, setExerciseNamesByDay] = useState({});
   const [workoutStatusByDay, setWorkoutStatusByDay] = useState({});
   const [workoutIdByDay, setWorkoutIdByDay] = useState({});
@@ -99,13 +109,24 @@ function WorkoutCalendarPage() {
   const [pasteProgress, setPasteProgress] = useState({ done: 0, total: 0 });
   const [pasteErrors, setPasteErrors] = useState([]); // Array<{ dayKey, message }>
 
-  const pasteMode = Boolean(workoutClipboard);
+  const pasteMode = Boolean(workoutClipboard) && canEditPlans;
+
+  useEffect(() => {
+    if (!trainerNeedsClient) return;
+    setExerciseNamesByDay({});
+    setWorkoutStatusByDay({});
+    setWorkoutIdByDay({});
+    setWorkoutTitleByDay({});
+    setWorkoutVolumeByDay({});
+  }, [trainerNeedsClient]);
 
   useEffect(() => {
     let mounted = true;
 
     const load = async () => {
       if (!user?.id) return;
+      if (!dataUserId) return;
+      if (trainerNeedsClient) return;
       if (!grid?.length) return;
 
       const rangeStart = grid[0]?.dayKey;
@@ -115,7 +136,7 @@ function WorkoutCalendarPage() {
       let workouts;
       try {
         workouts = await pb.collection('workouts').getFullList({
-          filter: `user = "${user.id}" && date >= "${rangeStart}" && date <= "${rangeEnd}"`,
+          filter: `user = "${dataUserId}" && date >= "${rangeStart}" && date <= "${rangeEnd}"`,
           sort: '-date',
           requestKey: null,
         });
@@ -250,7 +271,7 @@ function WorkoutCalendarPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.id, grid, calendarReloadKey, r]);
+  }, [user?.id, dataUserId, trainerNeedsClient, grid, calendarReloadKey, r]);
 
   const clearClipboard = () => {
     setWorkoutClipboard(null);
@@ -276,6 +297,7 @@ function WorkoutCalendarPage() {
   };
 
   const handleCopyDay = async (dayKey) => {
+    if (!canEditPlans) return;
     const workoutId = workoutIdByDay?.[dayKey];
     if (!workoutId) return;
     if (!user?.id) return;
@@ -292,6 +314,8 @@ function WorkoutCalendarPage() {
   };
 
   const applyPasteSelectedDays = async () => {
+    if (!canEditPlans) return;
+    if (!dataUserId) return;
     if (!user?.id) return;
     if (!workoutClipboard) return;
 
@@ -314,7 +338,7 @@ function WorkoutCalendarPage() {
     let existingByDay = {};
     try {
       const existing = await pb.collection('workouts').getFullList({
-        filter: `user = "${user.id}" && date >= "${minDay}" && date <= "${maxDay}"`,
+        filter: `user = "${dataUserId}" && date >= "${minDay}" && date <= "${maxDay}"`,
         sort: '-date',
         requestKey: null,
       });
@@ -343,7 +367,7 @@ function WorkoutCalendarPage() {
 
         try {
           await pasteWorkoutDraftToDay({
-            userId: user.id,
+            userId: dataUserId,
             dayKey: current,
             draft: workoutClipboard,
             existingWorkoutIds: existingByDay[current] || [],
@@ -426,8 +450,14 @@ function WorkoutCalendarPage() {
                 ) : null}
               </div>
             ) : null}
+            {trainerNeedsClient ? (
+              <div className={styles.trainerHint}>
+                Выберите клиента в разделе «Клиенты», чтобы видеть и редактировать его тренировки.
+              </div>
+            ) : null}
             <MonthCarousel selectedMonthKey={selectedMonthKey} onSelectMonth={setSelectedMonthKey} />
             <MonthCalendar
+              canCopy={canEditPlans}
               grid={grid}
               onDayClick={(dayKey) => setActiveDayKey(dayKey)}
               exerciseNamesByDay={exerciseNamesByDay}

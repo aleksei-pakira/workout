@@ -8,7 +8,7 @@
 }
 
 .content {
-  margin-top: var(--header-height, 70px);
+  margin-top: calc(var(--header-height, 70px) + 40px);
   width: 100%;
   flex: 1 1 auto;
   min-height: 0;
@@ -16,6 +16,18 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
+}
+
+.trainerHint {
+  width: 100%;
+  max-width: 1100px;
+  margin: 12px auto 0;
+  padding: 12px 16px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 8px;
+  color: #9a3412;
+  font-size: 14px;
 }
 
 .clipboardBanner {

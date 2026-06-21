@@ -1,3 +1,40 @@
+.coachBanner,
+.coachBannerWarn {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.coachBanner {
+  background: #ecfdf5;
+  border-bottom: 1px solid #86efac;
+  color: #166534;
+}
+
+.coachBannerWarn {
+  background: #fff7ed;
+  border-bottom: 1px solid #fdba74;
+  color: #9a3412;
+}
+
+.coachBannerBtn {
+  padding: 4px 12px;
+  border: 1px solid currentColor;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: inherit;
+}
+
 .header {
   position: fixed;
   top: 0;
@@ -112,6 +149,14 @@
 .loginBtn:hover {
   background-color: #b50f22;
   transform: translateY(-1px);
+}
+
+:global(body.has-coach-banner) .header {
+  top: 40px;
+}
+
+.headerWithBanner {
+  top: 40px;
 }
 
 @media (max-width: 768px) {

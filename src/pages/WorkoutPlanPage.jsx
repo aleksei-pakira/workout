@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import pb from '../lib/pocketbase';
 import Header from '../components/layout/Header';
+import { useCoachSession } from '../hooks/useCoachSession';
 import styles from './WorkoutPlanPage.module.css';
 
 function startOfWeekMonday(date) {
@@ -32,7 +33,9 @@ function formatDayTitleRu(date) {
 
 function WorkoutPlanPage() {
   const navigate = useNavigate();
-  const user = pb.authStore.model;
+  const { authUser, effectiveUserId, canEditPlans } = useCoachSession();
+  const user = authUser;
+  const dataUserId = effectiveUserId;
 
   const [weekOffset, setWeekOffset] = useState(0); // 0=this week, 1=next week
   const [selected, setSelected] = useState(() => new Set());
@@ -69,7 +72,11 @@ function WorkoutPlanPage() {
   const clearAll = () => setSelected(new Set());
 
   const createSelected = async () => {
-    if (!user?.id) {
+    if (!canEditPlans) {
+      alert('Нет прав на создание тренировок');
+      return;
+    }
+    if (!dataUserId) {
       alert('Нужно войти в аккаунт');
       return;
     }
@@ -89,7 +96,7 @@ function WorkoutPlanPage() {
         let exists = false;
         try {
           await pb.collection('workouts').getFirstListItem(
-            `user = "${user.id}" && date = "${dateKey}"`,
+            `user = "${dataUserId}" && date = "${dateKey}"`,
             { requestKey: null }
           );
           exists = true;
@@ -105,7 +112,7 @@ function WorkoutPlanPage() {
 
         await pb.collection('workouts').create(
           {
-            user: user.id,
+            user: dataUserId,
             title: `${baseName} ${dateKey}`,
             date: dateKey,
             notes: '',

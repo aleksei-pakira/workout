@@ -1,0 +1,90 @@
+.page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.content {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: calc(var(--header-height, 70px) + 32px) 24px 48px;
+}
+
+.title {
+  margin: 0 0 24px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.input {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.primaryBtn {
+  padding: 12px 16px;
+  background: #ce1126;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.successBox {
+  background: #fff;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.successBox p {
+  margin: 0;
+  color: #166534;
+  line-height: 1.5;
+}
+
+.hint {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.hint a {
+  color: #ce1126;
+}

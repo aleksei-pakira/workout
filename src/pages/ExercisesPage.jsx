@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
+import { isTrainer } from '../lib/permissions';
+import { useCoachSession } from '../hooks/useCoachSession';
 import {
   COLUMN_TYPES,
   MAX_SET_COLUMNS,
@@ -15,7 +17,10 @@ function escapePbLike(value) {
 }
 
 function ExercisesPage() {
-  const user = pb.authStore.model;
+  const { authUser, effectiveUserId, canEditPlans, isTrainerView } = useCoachSession();
+  const user = authUser;
+  const dataUserId = effectiveUserId;
+  const trainerNeedsClient = isTrainer(authUser) && !isTrainerView;
   const location = useLocation();
 
   const [loading, setLoading] = useState(true);
@@ -80,11 +85,11 @@ function ExercisesPage() {
   };
 
   const loadCustomExercises = async () => {
-    if (!user?.id) return;
+    if (!dataUserId) return;
 
     try {
       const list = await pb.collection('custom_exercises').getFullList({
-        filter: `user = "${user.id}"`,
+        filter: `user = "${dataUserId}"`,
         sort: 'custom_exercise_name',
         requestKey: null,
       });
@@ -95,20 +100,18 @@ function ExercisesPage() {
   };
 
   const loadExercises = async () => {
-    if (!user?.id) return;
+    if (!dataUserId || trainerNeedsClient) return;
 
     setLoading(true);
     try {
-      // Мои созданные
       const my = await pb.collection('exercises').getFullList({
-        filter: `created_by = "${user.id}"`,
+        filter: `created_by = "${dataUserId}"`,
         sort: 'exercise_name',
         requestKey: null,
       });
 
-      // Мои добавленные из библиотеки
       const links = await pb.collection('user_exercise_library').getFullList({
-        filter: `user = "${user.id}"`,
+        filter: `user = "${dataUserId}"`,
         expand: 'exercise',
         requestKey: null,
       });
@@ -129,7 +132,7 @@ function ExercisesPage() {
     // initial load
     loadExercises();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [dataUserId, trainerNeedsClient]);
 
   useEffect(() => {
     const tabFromState = location?.state?.tab;
@@ -265,7 +268,7 @@ function ExercisesPage() {
 
   const saveExercise = async (e) => {
     e.preventDefault();
-    if (!user?.id) return;
+    if (!canEditPlans || !dataUserId) return;
 
     const name = newExercise.exercise_name.trim();
     if (!name) {
@@ -288,7 +291,7 @@ function ExercisesPage() {
       } else {
         await pb.collection('exercises').create(
           {
-            created_by: user.id,
+            created_by: dataUserId,
             is_public: false,
             ...payload,
           },
@@ -349,7 +352,7 @@ function ExercisesPage() {
 
   const saveCustomExercise = async (e) => {
     e.preventDefault();
-    if (!user?.id) return;
+    if (!canEditPlans || !dataUserId) return;
 
     const name = customForm.custom_exercise_name.trim();
     if (!name) {
@@ -371,7 +374,7 @@ function ExercisesPage() {
         await pb.collection('custom_exercises').update(editingCustomId, payload, { requestKey: null });
       } else {
         await pb.collection('custom_exercises').create(
-          { user: user.id, ...payload },
+          { user: dataUserId, ...payload },
           { requestKey: null }
         );
       }
@@ -449,7 +452,7 @@ function ExercisesPage() {
     if (myPublicIds.has(exerciseId)) return;
     try {
       await pb.collection('user_exercise_library').create(
-        { user: user.id, exercise: exerciseId },
+        { user: dataUserId, exercise: exerciseId },
         { requestKey: null }
       );
       setMyPublicIds((prev) => new Set(prev).add(exerciseId));
@@ -504,6 +507,14 @@ function ExercisesPage() {
       <Header />
 
       <div className={styles.content}>
+        {trainerNeedsClient ? (
+          <div className={styles.coachHint}>Выберите клиента в разделе «Клиенты».</div>
+        ) : null}
+        {!canEditPlans && !trainerNeedsClient ? (
+          <div className={styles.coachHint}>
+            Режим просмотра: редактирование упражнений доступно тренеру или при включённом свитче.
+          </div>
+        ) : null}
         <div className={styles.grid}>
           {/* Левая колонка (скрывается на мобиле) */}
           <div className={styles.leftColumn}>

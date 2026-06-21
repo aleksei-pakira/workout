@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import pb from '../lib/pocketbase';
 
-export function useExerciseDropdownSource() {
-  const user = pb.authStore.model;
+export function useExerciseDropdownSource(effectiveUserId) {
+  const authUser = pb.authStore.model;
+  const userId = effectiveUserId || authUser?.id;
 
   const [exerciseSource, setExerciseSource] = useState('mine'); // mine | public | custom
   const [myExercises, setMyExercises] = useState([]);
@@ -12,16 +13,16 @@ export function useExerciseDropdownSource() {
   const [error, setError] = useState(null);
 
   const loadMyExercises = useCallback(async () => {
-    if (!user?.id) return [];
+    if (!userId) return [];
 
     const [created, links] = await Promise.all([
       pb.collection('exercises').getFullList({
-        filter: `created_by = "${user.id}"`,
+        filter: `created_by = "${userId}"`,
         sort: 'exercise_name',
         requestKey: null,
       }),
       pb.collection('user_exercise_library').getFullList({
-        filter: `user = "${user.id}"`,
+        filter: `user = "${userId}"`,
         expand: 'exercise',
         requestKey: null,
       }),
@@ -43,7 +44,7 @@ export function useExerciseDropdownSource() {
         .toLowerCase()
         .localeCompare(String(b?.exercise_name || '').toLowerCase())
     );
-  }, [user?.id]);
+  }, [userId]);
 
   const loadPublicExercises = useCallback(async () => {
     const list = await pb.collection('exercises').getFullList({
@@ -55,15 +56,15 @@ export function useExerciseDropdownSource() {
   }, []);
 
   const loadCustomExercises = useCallback(async () => {
-    if (!user?.id) return [];
+    if (!userId) return [];
 
     const list = await pb.collection('custom_exercises').getFullList({
-      filter: `user = "${user.id}"`,
+      filter: `user = "${userId}"`,
       sort: 'custom_exercise_name',
       requestKey: null,
     });
     return list || [];
-  }, [user?.id]);
+  }, [userId]);
 
   const ensureLoaded = useCallback(async () => {
     if (loading) return;

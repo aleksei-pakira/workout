@@ -30,6 +30,7 @@ function MonthCalendar({
   selectedDayKeys,
   onToggleDay,
   onCopyDay,
+  canCopy = true,
   maxLines = 3,
 }) {
   const renderCellBody = (cell, { workoutTitle }) => (
@@ -61,7 +62,7 @@ function MonthCalendar({
   const renderCellTop = (cell, { hasWorkout }) => (
     <div className={styles.cellTop}>
       <span className={styles.dayNum}>{cell.date.getDate()}</span>
-      {hasWorkout ? (
+      {hasWorkout && canCopy ? (
         <span
           role="button"
           tabIndex={0}

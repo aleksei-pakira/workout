@@ -1,0 +1,140 @@
+.page {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: calc(var(--header-height, 70px) + 32px) 24px 48px;
+}
+
+.title {
+  margin: 0 0 20px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.inviteBox {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inviteLabel {
+  font-weight: 600;
+  color: #334155;
+}
+
+.secondaryBtn {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.secondaryBtn:hover {
+  background: #f1f5f9;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cardMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.clientName {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.clientEmail {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.primaryBtn {
+  padding: 10px 16px;
+  background: #ce1126;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.muted,
+.empty,
+.hint {
+  color: #64748b;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.error {
+  color: #b91c1c;
+  margin-bottom: 16px;
+}
+
+.backLink {
+  margin-top: 24px;
+  font-size: 14px;
+}
+
+.backLink a {
+  color: #ce1126;
+  text-decoration: none;
+}
+
+@media (min-width: 640px) {
+  .card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}

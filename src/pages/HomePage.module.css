@@ -23,6 +23,43 @@
   --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
+.coachBlock {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.coachBlockTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.coachCode {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.coachLink {
+  color: var(--primary);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.coachLink:hover {
+  text-decoration: underline;
+}
+
+.coachModeText {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
 .page {
   min-height: 100vh;
   width: 100%;

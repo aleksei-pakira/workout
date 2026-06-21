@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import pb from '../lib/pocketbase';
+import { isTrainer } from '../lib/permissions';
+import { useCoachSession } from '../hooks/useCoachSession';
 import { useExerciseDropdownSource } from '../hooks/useExerciseDropdownSource';
 import {
   createEmptyBlock,
@@ -43,7 +45,9 @@ import styles from './WorkoutCalendarEditPage.module.css';
 
 function WorkoutCalendarEditPage() {
   const { id } = useParams();
-  const user = pb.authStore.model;
+  const { authUser, effectiveUserId, canEditPlans, isTrainerView } = useCoachSession();
+  const user = authUser;
+  const dataUserId = effectiveUserId;
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -62,7 +66,7 @@ function WorkoutCalendarEditPage() {
     loading: exercisesLoading,
     error: exercisesError,
     ensureLoaded: ensureExerciseSourcesLoaded,
-  } = useExerciseDropdownSource();
+  } = useExerciseDropdownSource(dataUserId);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -86,7 +90,7 @@ function WorkoutCalendarEditPage() {
         const w = await pb.collection('workouts').getOne(id, { requestKey: null });
         if (!mounted) return;
 
-        if (user?.id && w?.user && w.user !== user.id) {
+        if (dataUserId && w?.user && w.user !== dataUserId) {
           setError('Нет доступа к этой тренировке');
           setWorkout(null);
           return;
@@ -119,7 +123,13 @@ function WorkoutCalendarEditPage() {
     return () => {
       mounted = false;
     };
-  }, [id, user?.id]);
+  }, [id, dataUserId]);
+
+  useEffect(() => {
+    if (!canEditPlans && !loading) {
+      navigate('/workouts/calendar', { replace: true });
+    }
+  }, [canEditPlans, loading, navigate]);
 
   const ensureVariantSlot = (block, variantIndex) => {
     if (block.variants?.[variantIndex]) return block;

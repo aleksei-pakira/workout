@@ -1,4 +1,12 @@
-/* src/pages/ExercisesPage.module.css */
+.coachHint {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 10px;
+  color: #9a3412;
+  font-size: 14px;
+}
 
 :root {
   --bg: #ffffff;

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import pb from '../../lib/pocketbase';
-import { useExerciseDropdownSource } from '../../hooks/useExerciseDropdownSource';
+import { isUniqueConstraintError } from '../../lib/permissions';
+import { useCoachSession } from '../../hooks/useCoachSession';
 import {
   createEmptyBlock,
   createEmptyVariantSlot,
@@ -60,7 +61,9 @@ function getNextDayKey(dayKey) {
 }
 
 function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }) {
-  const user = pb.authStore.model;
+  const { authUser, effectiveUserId, canEditPlans } = useCoachSession();
+  const user = authUser;
+  const dataUserId = effectiveUserId;
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -81,7 +84,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
     loading: exercisesLoading,
     error: exercisesError,
     ensureLoaded: ensureExerciseSourcesLoaded,
-  } = useExerciseDropdownSource();
+  } = useExerciseDropdownSource(dataUserId);
 
   const canSave = useMemo(
     () =>
@@ -271,7 +274,8 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
     openExerciseDropdown?.variantIndex === variantIndex;
 
   const handleSave = async () => {
-    if (!user?.id) return;
+    if (!canEditPlans) return;
+    if (!dataUserId) return;
     if (!dayKey) return;
     if (!draftExercises.length) return;
     if (!draftExercises.every((block) => isVariantFilled(block.variants?.[MAIN_VARIANT_INDEX]))) return;
@@ -285,7 +289,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
 
       // Guard: if workout already exists for this day, don't create duplicates
       const existing = await pb.collection('workouts').getFullList({
-        filter: `user = "${user.id}" && date >= "${dayKey}" && date < "${nextDayKey}"`,
+        filter: `user = "${dataUserId}" && date >= "${dayKey}" && date < "${nextDayKey}"`,
         sort: '-created',
         requestKey: null,
       });
@@ -297,7 +301,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
 
       const workout = await pb.collection('workouts').create(
         {
-          user: user.id,
+          user: dataUserId,
           date: dayKey,
           title: draftTitle,
           notes: draftNotes,
@@ -317,7 +321,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
       );
 
       const list = await pb.collection('workouts').getFullList({
-        filter: `user = "${user.id}" && date >= "${dayKey}" && date < "${nextDayKey}"`,
+        filter: `user = "${dataUserId}" && date >= "${dayKey}" && date < "${nextDayKey}"`,
         sort: '-created',
         requestKey: null,
       });
@@ -329,7 +333,21 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
     } catch (e) {
       console.error('Ошибка сохранения тренировки:', e);
       console.error('PocketBase error details:', e?.data || e?.response || e);
-      setSaveError('Не удалось сохранить тренировку');
+      if (isUniqueConstraintError(e)) {
+        setSaveError('На этот день уже есть тренировка');
+        try {
+          const existing = await pb.collection('workouts').getFullList({
+            filter: `user = "${dataUserId}" && date >= "${dayKey}" && date < "${nextDayKey}"`,
+            sort: '-created',
+            requestKey: null,
+          });
+          setDayWorkouts(existing);
+        } catch {
+          /* ignore */
+        }
+      } else {
+        setSaveError('Не удалось сохранить тренировку');
+      }
     } finally {
       setSaving(false);
     }
@@ -340,7 +358,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
 
     const load = async () => {
       if (!dayKey) return;
-      if (!user?.id) return;
+      if (!dataUserId) return;
       const nextDayKey = getNextDayKey(dayKey);
       if (!nextDayKey) return;
 
@@ -349,7 +367,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
         setError(null);
 
         const list = await pb.collection('workouts').getFullList({
-          filter: `user = "${user.id}" && date >= "${dayKey}" && date < "${nextDayKey}"`,
+          filter: `user = "${dataUserId}" && date >= "${dayKey}" && date < "${nextDayKey}"`,
           sort: '-created',
           requestKey: null,
         });
@@ -370,7 +388,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
     return () => {
       mounted = false;
     };
-  }, [dayKey, user?.id]);
+  }, [dayKey, dataUserId]);
 
   const activeWorkout = useMemo(() => dayWorkouts[0] || null, [dayWorkouts]);
   const isCreateMode = useMemo(
@@ -480,7 +498,9 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
     setActiveVariantByWeId((prev) => ({ ...prev, [weId]: nextVariantIndex }));
 
     try {
-      await setActiveVariantIndex(weId, nextVariantIndex);
+      if (canEditPlans) {
+        await setActiveVariantIndex(weId, nextVariantIndex);
+      }
     } catch (e) {
       console.error('Ошибка сохранения активного варианта:', e);
       setWorkoutDataError('Не удалось сохранить активный вариант');
@@ -557,6 +577,10 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
             <div className={styles.muted}>Загрузка…</div>
           ) : error ? (
             <div className={styles.error}>{error}</div>
+          ) : isCreateMode && !canEditPlans ? (
+            <div className={styles.muted}>
+              На этот день нет тренировки. План создаёт тренер — вы сможете отмечать статусы после добавления.
+            </div>
           ) : isCreateMode ? (
             <div className={styles.workoutSummary}>
               <div className={styles.workoutTitleRow}>
@@ -798,7 +822,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
                 <div className={styles.workoutNotes}>{activeWorkout.notes}</div>
               ) : null}
 
-              {activeWorkout?.id ? (
+              {activeWorkout?.id && canEditPlans ? (
                 <button
                   type="button"
                   className={styles.editBtn}
