@@ -172,7 +172,7 @@ export async function setActiveVariantIndex(weId, variantIndex) {
 }
 
 /**
- * Имя упражнения активного варианта для календаря / списков.
+ * Имя упражнения активного варианта (последний выбранный в карусели).
  */
 export function getActiveVariantExerciseName(we, variants) {
   const activeIndex = we.active_variant_index ?? MAIN_VARIANT_INDEX;
@@ -182,6 +182,15 @@ export function getActiveVariantExerciseName(we, variants) {
     variants[0];
 
   return getVariantExerciseName(activeVariant, we);
+}
+
+/**
+ * Имя упражнения слота «Основное» (variant_index = 0) для календаря / превью.
+ */
+export function getMainVariantExerciseName(we, variants) {
+  const mainVariant =
+    variants.find((v) => v.variant_index === MAIN_VARIANT_INDEX) || variants[0];
+  return getVariantExerciseName(mainVariant, we);
 }
 
 /**

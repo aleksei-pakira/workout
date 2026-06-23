@@ -1,8 +1,23 @@
 /// <reference path="../pb_data/types.d.ts" />
 
+function isSuperuser(e) {
+  try {
+    return typeof e.hasSuperuserAuth === 'function' && e.hasSuperuserAuth();
+  } catch (err) {
+    return false;
+  }
+}
+
 function getAuthRole(e) {
   if (!e.auth) return '';
-  return String(e.auth.get('role') || '');
+  const fromToken = String(e.auth.get('role') || '').trim();
+  if (fromToken) return fromToken;
+  try {
+    const user = e.app.findRecordById('users', e.auth.id);
+    return String(user.get('role') || '').trim();
+  } catch (err) {
+    return '';
+  }
 }
 
 function isTrainer(e) {
@@ -14,15 +29,19 @@ function isPerformer(e) {
 }
 
 function performerHasTrainer(app, performerId) {
-  const rows = app.findRecordsByFilter(
-    'trainer_clients',
-    'client = {:client}',
-    '-created',
-    1,
-    0,
-    { client: performerId }
-  );
-  return rows.length > 0;
+  try {
+    const rows = app.findRecordsByFilter(
+      'trainer_clients',
+      'client = {:client}',
+      '-created',
+      1,
+      0,
+      { client: performerId }
+    );
+    return rows.length > 0;
+  } catch (err) {
+    return false;
+  }
 }
 
 function performerCanEditPlans(app, performerId) {
@@ -60,25 +79,29 @@ function forbid(msg) {
 }
 
 function ensureClientSettings(app, performerId) {
-  const existing = app.findRecordsByFilter(
-    'client_settings',
-    'performer = {:id}',
-    '',
-    1,
-    0,
-    { id: performerId }
-  );
-  if (existing.length > 0) return;
+  try {
+    const existing = app.findRecordsByFilter(
+      'client_settings',
+      'performer = {:id}',
+      '',
+      1,
+      0,
+      { id: performerId }
+    );
+    if (existing.length > 0) return;
 
-  const col = app.findCollectionByNameOrId('client_settings');
-  const rec = new Record(col);
-  rec.set('performer', performerId);
-  rec.set('client_can_edit_plans', false);
-  app.save(rec);
+    const col = app.findCollectionByNameOrId('client_settings');
+    const rec = new Record(col);
+    rec.set('performer', performerId);
+    rec.set('client_can_edit_plans', false);
+    app.save(rec);
+  } catch (err) {
+    // не ронять create trainer_clients
+  }
 }
 
 function blockCoachedStructure(app, e) {
-  if (e.hasSuperuserAuth()) return;
+  if (isSuperuser(e)) return;
   if (isTrainer(e)) return;
   if (isCoachedLocked(app, e)) {
     forbid('План ведёт тренер. Редактирование недоступно.');
@@ -86,7 +109,7 @@ function blockCoachedStructure(app, e) {
 }
 
 onRecordUpdateRequest(function (e) {
-  if (e.hasSuperuserAuth()) return e.next();
+  if (isSuperuser(e)) return e.next();
   if (isTrainer(e)) return e.next();
   if (!isCoachedLocked(e.app, e)) return e.next();
 
@@ -105,7 +128,7 @@ onRecordUpdateRequest(function (e) {
 }, 'workouts');
 
 onRecordUpdateRequest(function (e) {
-  if (e.hasSuperuserAuth()) return e.next();
+  if (isSuperuser(e)) return e.next();
   if (isTrainer(e)) return e.next();
   if (!isCoachedLocked(e.app, e)) return e.next();
 
@@ -161,7 +184,7 @@ onRecordDeleteRequest(function (e) {
 }, 'sets');
 
 onRecordUpdateRequest(function (e) {
-  if (e.hasSuperuserAuth()) return e.next();
+  if (isSuperuser(e)) return e.next();
 
   if (!isTrainer(e)) {
     forbid('Только тренер может менять настройки клиента.');
@@ -187,7 +210,7 @@ onRecordUpdateRequest(function (e) {
 }, 'client_settings');
 
 onRecordCreateRequest(function (e) {
-  if (e.hasSuperuserAuth()) return e.next();
+  if (isSuperuser(e)) return e.next();
 
   const trainerId = e.record.get('trainer');
   const clientId = e.record.get('client');

@@ -7,7 +7,7 @@ import { useCoachSession } from '../hooks/useCoachSession';
 import { normalizeWorkoutStatus } from '../lib/setStatus';
 import { aggregateVolumeByDayKey } from '../lib/workoutVolume';
 import {
-  getActiveVariantExerciseName,
+  getMainVariantExerciseName,
   loadWorkoutDraftFromApi,
   pasteWorkoutDraftToDay,
 } from '../lib/workoutVariants';
@@ -190,6 +190,7 @@ function WorkoutCalendarPage() {
         const wes = await pb.collection('workout_exercises').getFullList({
           filter: orFilter,
           expand: 'exercise',
+          sort: 'order_index',
           requestKey: null,
         });
 
@@ -225,21 +226,19 @@ function WorkoutCalendarPage() {
           variantIdToIsCustom[v.id] = Boolean(v.custom_exercise);
         }
 
-        const map = new Map();
+        const blocksByDay = new Map();
         for (const we of wes) {
           const dayKey = workoutDayKeyById.get(we.workout);
           if (!dayKey) continue;
-
-          const variants = variantsByWeId[we.id] || [];
-          const name = getActiveVariantExerciseName(we, variants);
-          if (!name) continue;
-
-          if (!map.has(dayKey)) map.set(dayKey, new Set());
-          map.get(dayKey).add(String(name));
+          if (!blocksByDay.has(dayKey)) blocksByDay.set(dayKey, []);
+          blocksByDay.get(dayKey).push(we);
         }
 
-        for (const [dayKey, set] of map.entries()) {
-          exerciseNames[dayKey] = Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'));
+        for (const [dayKey, dayWes] of blocksByDay) {
+          dayWes.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+          exerciseNames[dayKey] = dayWes
+            .map((we) => getMainVariantExerciseName(we, variantsByWeId[we.id] || []))
+            .filter(Boolean);
         }
       } catch (e) {
         console.error('Ошибка загрузки упражнений для календаря:', e);
