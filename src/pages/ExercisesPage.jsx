@@ -17,10 +17,10 @@ function escapePbLike(value) {
 }
 
 function ExercisesPage() {
-  const { authUser, effectiveUserId, canEditPlans, isTrainerView } = useCoachSession();
+  const { authUser, effectiveUserId, canManageExerciseLibrary, isTrainerView } = useCoachSession();
   const user = authUser;
   const dataUserId = effectiveUserId;
-  const trainerNeedsClient = isTrainer(authUser) && !isTrainerView;
+  const isTrainerOwnLibrary = isTrainer(authUser) && !isTrainerView;
   const location = useLocation();
 
   const [loading, setLoading] = useState(true);
@@ -100,7 +100,7 @@ function ExercisesPage() {
   };
 
   const loadExercises = async () => {
-    if (!dataUserId || trainerNeedsClient) return;
+    if (!dataUserId) return;
 
     setLoading(true);
     try {
@@ -132,7 +132,7 @@ function ExercisesPage() {
     // initial load
     loadExercises();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataUserId, trainerNeedsClient]);
+  }, [dataUserId]);
 
   useEffect(() => {
     const tabFromState = location?.state?.tab;
@@ -268,7 +268,7 @@ function ExercisesPage() {
 
   const saveExercise = async (e) => {
     e.preventDefault();
-    if (!canEditPlans || !dataUserId) return;
+    if (!canManageExerciseLibrary || !dataUserId) return;
 
     const name = newExercise.exercise_name.trim();
     if (!name) {
@@ -352,7 +352,7 @@ function ExercisesPage() {
 
   const saveCustomExercise = async (e) => {
     e.preventDefault();
-    if (!canEditPlans || !dataUserId) return;
+    if (!canManageExerciseLibrary || !dataUserId) return;
 
     const name = customForm.custom_exercise_name.trim();
     if (!name) {
@@ -507,12 +507,9 @@ function ExercisesPage() {
       <Header />
 
       <div className={styles.content}>
-        {trainerNeedsClient ? (
-          <div className={styles.coachHint}>Выберите клиента в разделе «Клиенты».</div>
-        ) : null}
-        {!canEditPlans && !trainerNeedsClient ? (
+        {isTrainerOwnLibrary ? (
           <div className={styles.coachHint}>
-            Режим просмотра: редактирование упражнений доступно тренеру или при включённом свитче.
+            Свои упражнения. Для библиотеки клиента — раздел «Клиенты».
           </div>
         ) : null}
         <div className={styles.grid}>

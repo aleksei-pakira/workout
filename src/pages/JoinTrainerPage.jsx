@@ -52,6 +52,21 @@ function JoinTrainerPage() {
         );
       }
 
+      try {
+        await pb.collection('client_settings').getFirstListItem(
+          `performer = "${authUser.id}"`,
+          { requestKey: null }
+        );
+      } catch {
+        await pb.collection('client_settings').create(
+          {
+            performer: authUser.id,
+            client_can_edit_plans: false,
+          },
+          { requestKey: null }
+        );
+      }
+
       markCoachJoinNoticeSeen();
       refreshCoachData();
       setSuccess(

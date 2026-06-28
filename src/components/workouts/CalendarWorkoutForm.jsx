@@ -62,7 +62,7 @@ function getNextDayKey(dayKey) {
 }
 
 function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }) {
-  const { authUser, effectiveUserId, canEditPlans } = useCoachSession();
+  const { authUser, effectiveUserId, canEditPlans, canChangeStatuses } = useCoachSession();
   const user = authUser;
   const dataUserId = effectiveUserId;
   const navigate = useNavigate();
@@ -462,6 +462,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
   const updateWorkoutStatus = async (nextStatus) => {
     const workoutId = activeWorkout?.id;
     if (!workoutId) return;
+    if (!canChangeStatuses) return;
 
     const normalizedNext = normalizeWorkoutStatus(nextStatus);
     const prevWorkouts = dayWorkouts;
@@ -511,6 +512,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
 
   const updateSetStatus = async (variantId, setId, nextStatus) => {
     if (!setId) return;
+    if (!canChangeStatuses) return;
 
     const normalizedNext = normalizeSetStatus(nextStatus);
 
@@ -807,7 +809,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
                   <select
                     className={styles.workoutStatusSelect}
                     value={normalizeWorkoutStatus(activeWorkout?.workout_status)}
-                    disabled={workoutStatusSaving}
+                    disabled={workoutStatusSaving || !canChangeStatuses}
                     onChange={(e) => updateWorkoutStatus(e.target.value)}
                     aria-label="Статус тренировки"
                   >
@@ -920,7 +922,7 @@ function CalendarWorkoutForm({ dayKey, onClose, onSaved, onWorkoutStatusChange }
                                       <select
                                         className={styles.statusSelect}
                                         value={statusValue}
-                                        disabled={!s.id}
+                                        disabled={!s.id || !canChangeStatuses}
                                         onChange={(e) => {
                                           updateSetStatus(activeVariant.id, s.id, e.target.value);
                                         }}

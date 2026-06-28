@@ -43,8 +43,8 @@ function Header() {
         </div>
       ) : null}
       {isTrainer(user) && !isTrainerView ? (
-        <div className={styles.coachBannerWarn}>
-          <span>Выберите клиента для работы с тренировками</span>
+        <div className={styles.coachBannerInfo}>
+          <span>Свой календарь</span>
           <button type="button" className={styles.coachBannerBtn} onClick={() => navigate('/clients')}>
             Клиенты
           </button>

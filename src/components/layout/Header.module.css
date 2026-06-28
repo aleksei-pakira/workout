@@ -1,4 +1,5 @@
 .coachBanner,
+.coachBannerInfo,
 .coachBannerWarn {
   position: fixed;
   top: 0;
@@ -17,6 +18,12 @@
   background: #ecfdf5;
   border-bottom: 1px solid #86efac;
   color: #166534;
+}
+
+.coachBannerInfo {
+  background: #eff6ff;
+  border-bottom: 1px solid #93c5fd;
+  color: #1e40af;
 }
 
 .coachBannerWarn {

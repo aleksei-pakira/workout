@@ -5,7 +5,12 @@ import {
   getSelectedClientId,
   setSelectedClientId as persistSelectedClientId,
 } from '../lib/coachSessionStorage';
-import { canEditPlans, isTrainer } from '../lib/permissions';
+import {
+  canChangeStatuses,
+  canEditPlans,
+  canManageExerciseLibrary,
+  isTrainer,
+} from '../lib/permissions';
 
 const CoachSessionContext = createContext(null);
 
@@ -135,15 +140,15 @@ export function CoachSessionProvider({ children }) {
     () => ({
       canEditPlans: canEditPlans({
         authUser,
-        isTrainerView,
         trainerLinkCount,
         clientCanEditPlans,
       }),
-      canChangeStatuses: Boolean(authUser?.id && (isTrainerView || !isTrainer(authUser))),
+      canManageExerciseLibrary: canManageExerciseLibrary({ authUser }),
+      canChangeStatuses: canChangeStatuses({ authUser }),
       isTrainerView,
       isCoached: !isTrainer(authUser) && trainerLinkCount > 0,
     }),
-    [authUser, isTrainerView, trainerLinkCount, clientCanEditPlans]
+    [authUser, trainerLinkCount, clientCanEditPlans]
   );
 
   const value = useMemo(

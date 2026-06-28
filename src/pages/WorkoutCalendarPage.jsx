@@ -95,7 +95,7 @@ function WorkoutCalendarPage() {
   } = useCoachSession();
   const user = authUser;
   const dataUserId = effectiveUserId;
-  const trainerNeedsClient = isTrainer(authUser) && !isTrainerView;
+  const isTrainerOwnCalendar = isTrainer(authUser) && !isTrainerView;
   const [exerciseNamesByDay, setExerciseNamesByDay] = useState({});
   const [workoutStatusByDay, setWorkoutStatusByDay] = useState({});
   const [workoutIdByDay, setWorkoutIdByDay] = useState({});
@@ -112,21 +112,11 @@ function WorkoutCalendarPage() {
   const pasteMode = Boolean(workoutClipboard) && canEditPlans;
 
   useEffect(() => {
-    if (!trainerNeedsClient) return;
-    setExerciseNamesByDay({});
-    setWorkoutStatusByDay({});
-    setWorkoutIdByDay({});
-    setWorkoutTitleByDay({});
-    setWorkoutVolumeByDay({});
-  }, [trainerNeedsClient]);
-
-  useEffect(() => {
     let mounted = true;
 
     const load = async () => {
       if (!user?.id) return;
       if (!dataUserId) return;
-      if (trainerNeedsClient) return;
       if (!grid?.length) return;
 
       const rangeStart = grid[0]?.dayKey;
@@ -270,7 +260,7 @@ function WorkoutCalendarPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.id, dataUserId, trainerNeedsClient, grid, calendarReloadKey, r]);
+  }, [user?.id, dataUserId, grid, calendarReloadKey, r]);
 
   const clearClipboard = () => {
     setWorkoutClipboard(null);
@@ -449,9 +439,9 @@ function WorkoutCalendarPage() {
                 ) : null}
               </div>
             ) : null}
-            {trainerNeedsClient ? (
+            {isTrainerOwnCalendar ? (
               <div className={styles.trainerHint}>
-                Выберите клиента в разделе «Клиенты», чтобы видеть и редактировать его тренировки.
+                Свой календарь. Чтобы вести план клиента — раздел «Клиенты».
               </div>
             ) : null}
             <MonthCarousel selectedMonthKey={selectedMonthKey} onSelectMonth={setSelectedMonthKey} />

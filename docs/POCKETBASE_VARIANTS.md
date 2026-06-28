@@ -83,7 +83,12 @@ API (multi-select): в ответе может быть `"status": ["done"]`. П
 
 > В **Create** rules используйте `@request.body`, не `@request.data`.
 
-### `workouts`
+**Coaching (тренер / coached performer):** полные правила — **`docs/COACHING_API_RULES.md`**.  
+На prod настроены rules с `@collection.trainer_clients`, `@collection.client_settings` и оператором **`?!=`** (не `!`).
+
+Ниже — **solo-only** правила (legacy-справка). Для coaching их **заменить** на правила из `COACHING_API_RULES.md`.
+
+### `workouts` (solo, устаревшая справка)
 
 | Rule | Выражение |
 |------|-----------|

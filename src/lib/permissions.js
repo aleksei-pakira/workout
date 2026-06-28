@@ -12,20 +12,24 @@ export function isPerformer(user) {
   return !user.role || user.role === ROLES.PERFORMER;
 }
 
-export function canEditPlans({
-  authUser,
-  isTrainerView,
-  trainerLinkCount = 0,
-  clientCanEditPlans = false,
-}) {
+/** CRUD плана тренировок (календарь, create/paste/edit/delete). */
+export function canEditPlans({ authUser, trainerLinkCount = 0, clientCanEditPlans = false }) {
   if (!authUser) return false;
 
-  if (isTrainer(authUser)) {
-    return Boolean(isTrainerView);
-  }
+  if (isTrainer(authUser)) return true;
 
   if (trainerLinkCount === 0) return true;
   return clientCanEditPlans === true;
+}
+
+/** CRUD библиотеки упражнений (exercises, custom_exercises, user_exercise_library). */
+export function canManageExerciseLibrary({ authUser }) {
+  return Boolean(authUser?.id);
+}
+
+/** Смена workout_status и sets.status на календаре. */
+export function canChangeStatuses({ authUser }) {
+  return Boolean(authUser?.id);
 }
 
 export function getCoachingModeLabel({ trainerLinkCount, clientCanEditPlans }) {
